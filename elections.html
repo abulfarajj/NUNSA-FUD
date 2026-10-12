@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NUNSA-FUD Elections</title>
+<link href="style.css" rel="stylesheet"/>
+</head><body class="nunsa-page page-elections"><header class="admin-header editorial-topbar"><div class="admin-header-left brand-lockup">
+<img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/>
+<div>
+<h1>
+            NUNSA-FUD
+        </h1>
+<p>
+            Election Management
+        </p>
+</div>
+</div>
+<button class="logout-button" id="back-dashboard-btn" type="button">
+    Dashboard
+</button>
+</header><main class="admin-dashboard editorial-page layout-elections editorial-split"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">ELECTION MANAGEMENT</p><span class="intro-rule"></span></div><h2 aria-label="Every election starts here." class="drop-headline">Every election starts here.</h2><p class="intro-copy">Create an election, set its schedule and monitor its progress.</p></section><!-- PAGE INTRO -->
+<section class="admin-welcome-card" data-motion="rise">
+<p class="small-label">
+        ELECTION MANAGEMENT
+    </p>
+<h2>
+        Elections
+    </h2>
+<p>
+        Create, manage and monitor NUNSA-FUD elections.
+    </p>
+</section>
+<!-- CREATE ELECTION -->
+<section class="dashboard-section" data-motion="rise">
+<h2>
+        Create New Election
+    </h2>
+<div class="admin-welcome-card">
+<form id="create-election-form">
+<label for="election-title">
+                Election Title
+            </label>
+<input id="election-title" placeholder="e.g. NUNSA-FUD 2026/2027 Election" required="" type="text"/>
+<label for="election-description">
+                Description
+            </label>
+<textarea id="election-description" placeholder="Enter a description for this election..." required="" rows="4"></textarea>
+<label for="election-start">
+                Start Date &amp; Time
+            </label>
+<input id="election-start" required="" type="datetime-local"/>
+<label for="election-end">
+                End Date &amp; Time
+            </label>
+<input id="election-end" required="" type="datetime-local"/>
+<button class="login-button" type="submit">
+                CREATE ELECTION
+            </button>
+<p id="election-message"></p>
+</form>
+</div>
+</section>
+<!-- EXISTING ELECTIONS -->
+<section class="dashboard-section" data-motion="rise">
+<h2>
+        Existing Elections
+    </h2>
+<div id="election-list">
+<p>
+            Loading elections...
+        </p>
+</div>
+</section>
+</main><footer><p>
+    NUNSA-FUD Electronic Voting System
+</p>
+</footer><script src="elections.js" type="module"></script><script defer="True" src="motion.js"></script></body></html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="#faf9f5" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NUNSA-FUD Admin Results</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-admin-results">
+<header class="admin-header editorial-topbar">
+<div class="admin-header-left brand-lockup">
+<img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/>
+<div>
+<h1>NUNSA-FUD</h1>
+<p>Election Results</p>
+</div>
+</div>
+<button class="logout-button" id="back-btn" type="button">
+        BACK
+    </button>
+</header>
+<main class="admin-dashboard editorial-page layout-admin-results results-page"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">OFFICIAL RESULTS</p><span class="intro-rule"></span></div><h2 aria-label="The count, clearly presented." class="drop-headline">The count, clearly presented.</h2><p class="intro-copy">Choose an election to review live totals or official outcomes.</p></section>
+<section class="admin-welcome-card" data-motion="rise">
+<p class="small-label">
+            RESULTS
+        </p>
+<h2>
+            Select an Election
+        </h2>
+<p>
+            Choose an election to view its live or final results.
+        </p>
+</section>
+<section class="dashboard-section" data-motion="rise">
+<h2>
+            Elections
+        </h2>
+<div id="elections-container">
+<p id="loading-message">
+                Loading elections...
+            </p>
+</div>
+</section>
+<section class="admin-welcome-card" data-motion="rise" id="message-section" style="display:none;">
+<p id="message"></p>
+</section>
+</main>
+<footer>
+<p>
+        NUNSA-FUD Electronic Voting System
+    </p>
+</footer>
+<script src="admin-results.js" type="module">
+</script>
+<script defer="True" src="motion.js"></script></body>
+</html>

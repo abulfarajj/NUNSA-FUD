@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NUNSA-FUD Student Dashboard</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-student-dashboard">
+<header class="site-header editorial-topbar"><div class="brand-lockup"><img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/><div class="brand-copy"><h1>NUNSA-FUD</h1><p class="system-title">
+        Student Dashboard
+    </p></div></div>
+
+
+
+</header>
+<main class="container editorial-page layout-student-dashboard dashboard-page"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">STUDENT SPACE</p><span class="intro-rule"></span></div><h2 aria-label="Your place in the process." class="drop-headline">Your place in the process.</h2><p class="intro-copy">Manage your profile and continue to the voter portal.</p></section>
+<section class="welcome-card" data-motion="rise">
+<h2>
+            Welcome,
+            <span id="student-name">
+                Student
+            </span>
+</h2>
+<p>
+            Manage your profile and access the
+            NUNSA-FUD voter portal.
+        </p>
+</section>
+<section class="welcome-card" data-motion="rise">
+<h2>
+            My Profile
+        </h2>
+<div class="student-profile">
+<div class="profile-picture-area">
+<img alt="Student Profile Picture" class="student-profile-picture" id="student-profile-picture" src="assets/default-profile.jpg"/>
+<label class="login-button" for="profile-picture-input">
+                    CHANGE PROFILE PICTURE
+                </label>
+<input accept="image/*" id="profile-picture-input" style="display:none;" type="file"/>
+<p id="profile-picture-message"></p>
+</div>
+<div class="student-profile-details">
+<p>
+<strong>Name:</strong>
+<span id="profile-name">
+                        Loading...
+                    </span>
+</p>
+<p>
+<strong>Registration Number:</strong>
+<span id="profile-matric">
+                        Loading...
+                    </span>
+</p>
+</div>
+</div>
+</section>
+<section class="welcome-card" data-motion="rise">
+<h2>
+            Voter Portal
+        </h2>
+<p>
+            View available elections, candidates,
+            live results and election outcomes.
+        </p>
+<button class="vote-button" id="voter-portal-btn" type="button">
+            OPEN VOTER PORTAL
+        </button>
+</section>
+<section class="welcome-card" data-motion="rise" id="student-message-section" style="display:none;">
+<p id="student-dashboard-message"></p>
+</section>
+<div class="admin-access">
+<button id="student-logout-btn" type="button">
+            LOG OUT
+        </button>
+</div>
+</main>
+<footer>
+<p>
+        NUNSA-FUD Electronic Voting System
+    </p>
+</footer>
+<script src="student-dashboard.js" type="module"></script>
+<script defer="True" src="motion.js"></script></body>
+</html>

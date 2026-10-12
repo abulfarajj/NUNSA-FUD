@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NUNSA-FUD Admin Management</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-admin-management">
+<!-- HEADER -->
+<header class="admin-header editorial-topbar">
+<div class="admin-header-left brand-lockup">
+<img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/>
+<div>
+<h1>NUNSA-FUD</h1>
+<p>Admin Management</p>
+</div>
+</div>
+<button class="logout-button" id="back-dashboard-btn" type="button">
+            Dashboard
+        </button>
+</header>
+<!-- MAIN CONTENT -->
+<main class="admin-dashboard editorial-page layout-admin-management editorial-split"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">SUPER ADMINISTRATION</p><span class="intro-rule"></span></div><h2 aria-label="Trust starts with good governance." class="drop-headline">Trust starts with good governance.</h2><p class="intro-copy">Review administrator access and manage invitations.</p></section>
+<!-- PAGE INTRO -->
+<section class="admin-welcome-card" data-motion="rise">
+<p class="small-label">
+                SUPER ADMIN
+            </p>
+<h2>
+                Admin Management
+            </h2>
+<p>
+                Manage administrators and their permissions.
+            </p>
+</section>
+<!-- ADMIN CAPACITY -->
+<section class="dashboard-section" data-motion="rise">
+<h2>Administrator Slots</h2>
+<div class="admin-welcome-card">
+<h3 id="admin-count">
+                    0 / 5 Admins
+                </h3>
+<p>
+                    Maximum of 5 active administrators allowed.
+                </p>
+<p>
+                    Maximum of 3 active Super Admins.
+                </p>
+</div>
+</section>
+<!-- CURRENT ADMINS -->
+<section class="dashboard-section" data-motion="rise">
+<h2>Current Administrators</h2>
+<div id="admin-list">
+<p>
+                    Loading administrators...
+                </p>
+</div>
+</section>
+<!-- INVITE ADMIN -->
+<section class="dashboard-section" data-motion="rise">
+<h2>Invite Administrator</h2>
+<div class="admin-welcome-card">
+<form id="invite-admin-form">
+<label for="admin-display-name">
+                        Admin Name
+                    </label>
+<input id="admin-display-name" placeholder="Enter admin name" required="" type="text"/>
+<label for="admin-email">
+                        Email
+                    </label>
+<input id="admin-email" placeholder="Enter admin email" required="" type="email"/>
+<label for="admin-role">
+                        Role
+                    </label>
+<select id="admin-role" required="">
+<option value="">
+                            Select role
+                        </option>
+<option value="admin">
+                            Regular Admin
+                        </option>
+<option value="super_admin">
+                            Super Admin
+                        </option>
+</select>
+<button class="login-button" type="submit">
+                        SEND INVITATION
+                    </button>
+<p id="invite-message"></p>
+</form>
+</div>
+</section>
+</main>
+<footer>
+<p>NUNSA-FUD Electronic Voting System</p>
+</footer>
+<script src="admin-management.js" type="module"></script>
+<script defer="True" src="motion.js"></script></body>
+</html>

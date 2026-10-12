@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="#faf9f5" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manage Candidates - NUNSA-FUD</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-candidates">
+<header class="admin-header editorial-topbar"><div class="admin-header-left brand-lockup"><img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/><div><h1>NUNSA-FUD</h1><p>Candidate Management</p></div></div></header>
+<main class="container editorial-page layout-candidates editorial-split"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">CANDIDATE MANAGEMENT</p><span class="intro-rule"></span></div><h2 aria-label="Meet the people on the ballot." class="drop-headline">Meet the people on the ballot.</h2><p class="intro-copy">Manage candidate details and positions for this election.</p></section>
+<button class="back-btn" id="backBtn">
+      ← Back to Election
+    </button>
+<section class="election-info" data-motion="rise">
+<h2 id="electionTitle">Loading election...</h2>
+<p id="electionDescription"></p>
+</section>
+<div class="draft-warning hidden" id="draftWarning">
+      Candidates can only be added while the election is still in
+      <strong>Draft</strong> status.
+    </div>
+<section class="card" data-motion="rise" id="candidateFormCard">
+<h3>Add Candidate</h3>
+<div class="field">
+<label for="candidateMatric">
+          Candidate Matric Number
+        </label>
+<div class="lookup-row">
+<input autocomplete="off" id="candidateMatric" placeholder="Enter candidate matric number" type="text"/>
+<button class="lookup-btn" id="lookupStudentBtn" type="button">
+            LOOK UP STUDENT
+          </button>
+</div>
+<div class="student-result" id="studentResult">
+<strong>Student Found</strong>
+<span id="studentName"></span>
+</div>
+</div>
+<div class="field">
+<label for="candidatePosition">
+          Position
+        </label>
+<input autocomplete="off" id="candidatePosition" placeholder="e.g. President" type="text"/>
+</div>
+<button class="add-btn" disabled="" id="addCandidateBtn" type="button">
+        ADD CANDIDATE
+      </button>
+<div class="message" id="candidateMessage"></div>
+</section>
+<section class="card" data-motion="rise">
+<h3>Registered Candidates</h3>
+<div class="candidate-list" id="candidateList">
+<div class="empty">
+          Loading candidates...
+        </div>
+</div>
+</section>
+</main>
+<script src="candidates.js" type="module"></script>
+<script defer="True" src="motion.js"></script></body>
+</html>

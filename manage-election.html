@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NUNSA-FUD Manage Election</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-manage-election">
+<header class="admin-header editorial-topbar">
+<div class="admin-header-left brand-lockup">
+<img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/>
+<div>
+<h1>
+                NUNSA-FUD
+            </h1>
+<p>
+                Manage Election
+            </p>
+</div>
+</div>
+<button class="logout-button" id="back-elections-btn" type="button">
+        Elections
+    </button>
+</header>
+<main class="admin-dashboard editorial-page layout-manage-election management-page"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">ELECTION WORKSPACE</p><span class="intro-rule"></span></div><h2 aria-label="One election. Every detail." class="drop-headline">One election. Every detail.</h2><p class="intro-copy">Review status, manage participation and control the election lifecycle.</p></section>
+<!-- =========================================
+         ELECTION HEADER
+    ========================================== -->
+<section class="admin-welcome-card" data-motion="rise">
+<p class="small-label">
+            ELECTION MANAGEMENT
+        </p>
+<h2 id="election-title">
+            Loading election...
+        </h2>
+<p id="election-description">
+            Loading election description...
+        </p>
+<p>
+<strong>
+                Status:
+            </strong>
+<span class="role-badge" id="election-status">
+                Loading...
+            </span>
+</p>
+</section>
+<!-- =========================================
+         ELECTION DETAILS
+    ========================================== -->
+<section class="dashboard-section" data-motion="rise">
+<h2>
+            Election Details
+        </h2>
+<div class="admin-welcome-card">
+<p>
+<strong>
+                    Start:
+                </strong>
+<span id="election-start">
+                    Loading...
+                </span>
+</p>
+<p>
+<strong>
+                    End:
+                </strong>
+<span id="election-end">
+                    Loading...
+                </span>
+</p>
+<p>
+<strong>
+                    Created By:
+                </strong>
+<span id="election-created-by">
+                    Loading...
+                </span>
+</p>
+<p>
+<strong>
+                    Current Time:
+                </strong>
+<span id="current-time">
+                    Loading...
+                </span>
+</p>
+</div>
+</section>
+<!-- =========================================
+         ELECTION STATUS INFORMATION
+    ========================================== -->
+<div hidden aria-hidden="true">
+<span id="status-heading"></span>
+<span id="status-description"></span>
+<span id="status-countdown"></span>
+</div>
+<!-- =========================================
+         CANDIDATES
+    ========================================== -->
+<section class="dashboard-section" data-motion="rise">
+<h2>
+            Candidates
+        </h2>
+<div class="dashboard-grid">
+<button class="dashboard-card" id="manage-candidates-btn" type="button"><span class="card-index">01</span>
+<span class="card-icon">
+                    👤
+                </span>
+<strong>
+                    Manage Candidates
+                </strong>
+<small>
+                    Add and manage candidates for this election.
+                </small>
+<span class="card-arrow">↗</span></button>
+</div>
+</section>
+<!-- =========================================
+         ELIGIBLE VOTERS
+    ========================================== -->
+<section class="dashboard-section" data-motion="rise">
+<h2>
+            Eligible Voters
+        </h2>
+<div class="dashboard-grid">
+<button class="dashboard-card" id="manage-voters-btn" type="button"><span class="card-index">02</span>
+<span class="card-icon">
+                    🗳️
+                </span>
+<strong>
+                    Manage Voters
+                </strong>
+<small>
+                    Add or import students eligible to vote in this election.
+                </small>
+<span class="card-arrow">↗</span></button>
+</div>
+</section>
+<!-- =========================================
+         RESULTS
+    ========================================== -->
+<section class="dashboard-section" data-motion="rise">
+<h2>
+            Results
+        </h2>
+<div class="dashboard-grid">
+<button class="dashboard-card" id="view-results-btn" type="button"><span class="card-index">03</span>
+<span class="card-icon">
+                    📊
+                </span>
+<strong>
+                    View Results
+                </strong>
+<small>
+                    View live election results and final results.
+                </small>
+<span class="card-arrow">↗</span></button>
+</div>
+</section>
+<!-- =========================================
+         ELECTION CONTROL
+    ========================================== -->
+<section class="dashboard-section" data-motion="rise">
+<h2>
+            Election Control
+        </h2>
+<div class="admin-welcome-card">
+<h3>
+                Publish Election
+            </h3>
+<p>
+                Publishing makes this election available
+                to voters and allows it to follow its
+                scheduled start and end times.
+            </p>
+<button class="login-button" id="publish-election-btn" type="button">
+                PUBLISH ELECTION
+            </button>
+<p id="publish-message"></p>
+</div>
+</section>
+<!-- =========================================
+         IMPORTANT SYSTEM INFORMATION
+    ========================================== -->
+<section class="dashboard-section" data-motion="rise">
+<h2>
+            Voting Rules
+        </h2>
+<div class="admin-welcome-card">
+<p>
+                Students must be in this election's
+                eligible voter list to cast a vote.
+            </p>
+<p>
+                Students who are registered in the
+                general NUNSA-FUD student database but
+                are not on this election's voter list
+                can still enter the website and follow
+                the election, but cannot vote.
+            </p>
+<p>
+                Voting will automatically become
+                available at the scheduled start time
+                and automatically end at the scheduled
+                end time.
+            </p>
+<p>
+                Elections are not manually paused.
+            </p>
+</div>
+</section>
+</main>
+<footer>
+<p>
+        NUNSA-FUD Electronic Voting System
+    </p>
+</footer>
+<script src="manage-election.js" type="module"></script>
+<script defer="True" src="motion.js"></script></body>
+</html>

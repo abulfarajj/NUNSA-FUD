@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+ <html lang="en"> <head>
+<meta charset="utf-8"/>
+<meta content="#faf9f5" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NUNSA-FUD Voting System</title>
+<link href="style.css" rel="stylesheet"/> </head> <body class="nunsa-page page-index"> <header class="site-header editorial-topbar"><div class="brand-lockup"><img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/><div class="brand-copy"><h1>NUNSA-FUD</h1><p class="system-title">    
+    Electronic Voting System    
+</p></div></div>    </header> <main class="container editorial-page layout-index landing-layout"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">NUNSA-FUD · DIGITAL ELECTIONS</p><span class="intro-rule"></span></div><h2 aria-label="A voice for every nursing student." class="drop-headline">A voice for every nursing student.</h2><p class="intro-copy">A considered, secure way to take part in the decisions that shape our association.</p></section> <section class="welcome-card auth-panel" data-motion="rise"><p class="panel-kicker">STUDENT ACCESS</p> <h2 id="student-auth-title">    
+    Welcome    
+</h2>
+<p id="student-auth-description">    
+    SIGN UP/LOGIN TO CONTINUE    
+</p>
+<div id="auth-choice">
+<button class="vote-button" id="login-btn" type="button">    
+        LOGIN    
+    </button>
+<button class="vote-button" id="signup-btn" type="button">    
+        SIGN UP    
+    </button>
+</div>
+<form id="login-form" style="display: none;">
+<label for="login-matric">    
+        Registration Number:    
+    </label>
+<input autocomplete="off" id="login-matric" placeholder="Enter your registration number" required="" type="text"/>
+<label class="pin-label">    
+        Enter your 4-digit PIN:    
+    </label>
+<div class="pin-input-group" id="login-pin-group">
+<input aria-label="PIN digit 1" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="PIN digit 2" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="PIN digit 3" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="PIN digit 4" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+</div>
+<button class="vote-button" id="login-submit-btn" type="submit">    
+        LOGIN    
+    </button>
+<button id="forgot-pin-btn" type="button">    
+        Forgot PIN?    
+    </button>
+<button id="back-to-choice-from-login" type="button">    
+        BACK    
+    </button>
+<p id="login-message"></p>
+</form>
+<form id="signup-form" style="display: none;">
+<label for="signup-matric">    
+        Registration Number:    
+    </label>
+<input autocomplete="off" id="signup-matric" placeholder="Enter your registration number" required="" type="text"/>
+<label for="signup-email">    
+        Email Address:    
+    </label>
+<input autocomplete="email" id="signup-email" placeholder="Enter your email address" required="" type="email"/>
+<div id="signup-code-section" style="display: none;">
+<label class="pin-label">    
+            Enter the 4-digit verification code:    
+        </label>
+<div class="pin-input-group" id="signup-code-group">
+<input aria-label="Verification code digit 1" autocomplete="one-time-code" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Verification code digit 2" autocomplete="one-time-code" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Verification code digit 3" autocomplete="one-time-code" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Verification code digit 4" autocomplete="one-time-code" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+</div>
+</div>
+<div id="signup-pin-section" style="display: none;">
+<label class="pin-label">    
+            Create your 4-digit PIN:    
+        </label>
+<div class="pin-input-group" id="signup-pin-group">
+<input aria-label="New PIN digit 1" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="New PIN digit 2" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="New PIN digit 3" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="New PIN digit 4" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+</div>
+<label class="pin-label">    
+            Confirm your 4-digit PIN:    
+        </label>
+<div class="pin-input-group" id="signup-confirm-pin-group">
+<input aria-label="Confirm PIN digit 1" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="Confirm PIN digit 2" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="Confirm PIN digit 3" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="Confirm PIN digit 4" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+</div>
+</div>
+<button class="vote-button" id="signup-submit-btn" type="submit">    
+        CONTINUE    
+    </button>
+<button id="back-to-choice-from-signup" type="button">    
+        BACK    
+    </button>
+<p id="signup-message"></p>
+</form>
+<form id="forgot-pin-form" style="display: none;">
+<h3>    
+        Reset PIN    
+    </h3>
+<p>    
+        Enter your registration number. A recovery code will be sent to the email address you used when creating your student account.    
+    </p>
+<label for="reset-matric">    
+        Registration Number:    
+    </label>
+<input autocomplete="off" id="reset-matric" placeholder="Enter your registration number" required="" type="text"/>
+<div id="reset-code-section" style="display: none;">
+<label class="pin-label">    
+            Enter the 4-digit recovery code:    
+        </label>
+<div class="pin-input-group" id="reset-code-group">
+<input aria-label="Recovery code digit 1" autocomplete="one-time-code" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Recovery code digit 2" autocomplete="one-time-code" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Recovery code digit 3" autocomplete="one-time-code" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Recovery code digit 4" autocomplete="one-time-code" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+</div>
+</div>
+<div id="reset-pin-section" style="display: none;">
+<label class="pin-label">    
+            Create your new 4-digit PIN:    
+        </label>
+<div class="pin-input-group" id="reset-pin-group">
+<input aria-label="New PIN digit 1" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="New PIN digit 2" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="New PIN digit 3" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="New PIN digit 4" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+</div>
+<label class="pin-label">    
+            Confirm your new 4-digit PIN:    
+        </label>
+<div class="pin-input-group" id="reset-confirm-pin-group">
+<input aria-label="Confirm new PIN digit 1" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="Confirm new PIN digit 2" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="Confirm new PIN digit 3" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="Confirm new PIN digit 4" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+</div>
+</div>
+<button class="vote-button" id="reset-pin-submit-btn" type="submit">    
+        SEND RECOVERY CODE    
+    </button>
+<button id="back-to-login-from-forgot" type="button">    
+        BACK TO LOGIN    
+    </button>
+<p id="reset-pin-message"></p>
+</form>
+</section> </main> <div class="admin-access"> <button id="admin-access-btn" type="button"> 
+
+🔒 Admin Login
+
+</button> </div> <footer> <p>    
+    NUNSA-FUD Electronic Voting System    
+</p> </footer> <script src="app.js" type="module"></script> <script defer="True" src="motion.js"></script></body>
+</html> 

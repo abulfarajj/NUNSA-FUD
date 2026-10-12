@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="#faf9f5" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NUNSA-FUD Admin Invitation</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-accept-invitation">
+<main class="admin-dashboard editorial-page layout-accept-invitation"><section class="page-intro auth-panel" data-motion="rise"><div class="intro-meta"><p class="eyebrow">ADMINISTRATOR ACCESS</p><span class="intro-rule"></span></div><h2 aria-label="Your invitation awaits." class="drop-headline">Your invitation awaits.</h2><p class="intro-copy">Confirm your account details to finish setting up access.</p></section>
+<section class="admin-welcome-card" data-motion="rise">
+<img alt="NUNSA Logo" class="admin-logo" src="assets/nunsa-logo.png"/>
+<p class="small-label">
+        NUNSA-FUD
+    </p>
+<h2>
+        Admin Invitation
+    </h2>
+<p id="invitation-status">
+        Checking your invitation...
+    </p>
+<div id="invitation-details" style="display:none;">
+<p>
+            You have been invited to become:
+        </p>
+<h3 id="invited-role">
+            Loading...
+        </h3>
+<p>
+            Account:
+            <strong id="invited-email">
+                Loading...
+            </strong>
+</p>
+</div>
+<form id="accept-invitation-form" style="display:none;">
+<label for="invitation-email">
+            Invited Email
+        </label>
+<input autocomplete="email" id="invitation-email" readonly="" required="" type="email"/>
+<label for="invitation-password">
+            Create Password
+        </label>
+<input autocomplete="new-password" id="invitation-password" minlength="6" placeholder="Create your password" required="" type="password"/>
+<label for="confirm-password">
+            Confirm Password
+        </label>
+<input autocomplete="new-password" id="confirm-password" minlength="6" placeholder="Confirm your password" required="" type="password"/>
+<button class="login-button" type="submit">
+            ACCEPT INVITATION
+        </button>
+<p id="accept-message"></p>
+</form>
+</section>
+</main>
+<script src="accept-invitation.js" type="module"></script>
+<script defer="True" src="motion.js"></script></body>
+</html>

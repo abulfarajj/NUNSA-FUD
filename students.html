@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>
+        Student Management - NUNSA-FUD
+    </title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-students">
+<header class="admin-header editorial-topbar">
+<div class="admin-header-left brand-lockup">
+<img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/>
+<div>
+<h1>
+                NUNSA-FUD
+            </h1>
+<p>
+                Student Management
+            </p>
+</div>
+</div>
+<button class="logout-button" id="back-dashboard-btn" type="button">
+        Dashboard
+    </button>
+</header>
+<main class="admin-dashboard editorial-page layout-students editorial-split"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">STUDENT RECORDS</p><span class="intro-rule"></span></div><h2 aria-label="Keep the register in order." class="drop-headline">Keep the register in order.</h2><p class="intro-copy">Maintain the student records used by the election system.</p></section>
+<!-- PAGE INTRO -->
+<section class="admin-welcome-card" data-motion="rise">
+<p class="small-label">
+            GENERAL STUDENT DATABASE
+        </p>
+<h2>
+            Student Management
+        </h2>
+<p>
+            Manage students who are allowed to access
+            the NUNSA-FUD website.
+        </p>
+</section>
+<!-- ACTIONS -->
+<section class="dashboard-section" data-motion="rise">
+<h2>
+            Student Management
+        </h2>
+<div class="dashboard-grid">
+<button class="dashboard-card" id="add-student-btn" type="button"><span class="card-index">01</span>
+<h3>
+                    Add Student
+                </h3>
+<p>
+                    Add one student using their
+                    registration number.
+                </p>
+<span class="card-arrow">↗</span></button>
+<button class="dashboard-card" id="import-students-btn" type="button"><span class="card-index">02</span>
+<h3>
+                    Import Students
+                </h3>
+<p>
+                    Add many students using
+                    CSV or Excel.
+                </p>
+<span class="card-arrow">↗</span></button>
+</div>
+</section>
+<!-- SEARCH -->
+<section class="dashboard-section" data-motion="rise">
+<h2>
+            Students
+        </h2>
+<div class="student-search-container">
+<input autocomplete="off" id="student-search" placeholder="Search by registration number or name..." type="search"/>
+</div>
+<div class="student-list" id="student-list">
+<p>
+                Loading students...
+            </p>
+</div>
+</section>
+</main>
+<footer>
+<p>
+        NUNSA-FUD Electronic Voting System
+    </p>
+</footer>
+<!-- =========================
+     IMPORT LIBRARY
+========================= -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="students.js" type="module"></script>
+<script defer="True" src="motion.js"></script></body>
+</html>

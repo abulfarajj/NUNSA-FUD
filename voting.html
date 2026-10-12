@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="#faf9f5" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NUNSA-FUD Election</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-voting">
+<header class="site-header editorial-topbar"><div class="brand-lockup"><img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/><div class="brand-copy"><h1>NUNSA-FUD</h1><p class="system-title">
+        Electronic Voting System
+    </p></div></div>
+
+
+
+</header>
+<main class="container editorial-page layout-voting ballot-page"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">OFFICIAL BALLOT</p><span class="intro-rule"></span></div><h2 aria-label="Make your choice count." class="drop-headline">Make your choice count.</h2><p class="intro-copy">Review each position carefully before confirming your vote.</p></section>
+<section class="welcome-card" data-motion="rise">
+<h2 id="election-title">
+            Loading Election...
+        </h2>
+<p id="election-description">
+            Please wait...
+        </p>
+<p id="election-status"></p>
+</section>
+<section class="welcome-card" data-motion="rise" id="instructions-card">
+<h3>
+            How to Vote
+        </h3>
+<p>
+            Select one candidate for each position.
+        </p>
+<p>
+            You can only submit your vote once.
+        </p>
+<p>
+            Review your selections carefully before submitting your vote.
+        </p>
+</section>
+<section data-motion="rise" id="positions-container">
+<p id="loading-message">
+            Loading candidates...
+        </p>
+</section>
+<section class="welcome-card" data-motion="rise" id="vote-summary" style="display: none;">
+<h2>
+            Review Your Vote
+        </h2>
+<div id="selected-votes"></div>
+</section>
+<section class="welcome-card" data-motion="rise" id="vote-confirmation" style="display: none;">
+<h2>
+            Confirm Your Vote
+        </h2>
+<p>
+            Are you sure you want to submit this vote?
+        </p>
+<p>
+            Once you confirm, your vote will be recorded and cannot be changed.
+        </p>
+<div id="confirmation-selected-votes"></div>
+<button class="vote-button" id="proceed-to-pin-btn" type="button">
+            CONTINUE
+        </button>
+<button id="cancel-confirmation-btn" type="button">
+            GO BACK
+        </button>
+</section>
+<section class="welcome-card" data-motion="rise" id="vote-pin-section" style="display: none;">
+<h2>
+            Enter Your Voting PIN
+        </h2>
+<p>
+            Enter your 4-digit PIN to authorize this vote.
+        </p>
+<div class="digit-input-group" id="vote-pin-group">
+<input aria-label="PIN digit 1" autocomplete="one-time-code" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="PIN digit 2" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="PIN digit 3" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="PIN digit 4" inputmode="numeric" maxlength="1" type="password"/>
+</div>
+<button class="vote-button" id="confirm-vote-btn" type="button">
+            CONFIRM VOTE
+        </button>
+<button id="back-to-confirmation-btn" type="button">
+            GO BACK
+        </button>
+<p id="vote-pin-message" style="text-align: center;"></p>
+</section>
+<button class="vote-button" disabled="" id="cast-vote-btn" type="button">
+        CAST VOTE
+    </button>
+<p id="vote-message" style="text-align: center;"></p>
+<div class="admin-access">
+<button id="back-to-portal" type="button">
+            ← Back to Voter Portal
+        </button>
+</div>
+</main>
+<footer>
+<p>
+        NUNSA-FUD Electronic Voting System
+    </p>
+</footer>
+<script src="voting.js" type="module">
+</script>
+<script defer="True" src="motion.js"></script></body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="#faf9f5" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Voter Management - NUNSA-FUD</title>
+<link href="style.css" rel="stylesheet"/>
+<!-- SheetJS: used to read Excel files in the browser -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body class="nunsa-page page-voters">
+<header class="admin-header editorial-topbar">
+<div class="admin-header-left brand-lockup">
+<img alt="NUNSA Logo" class="admin-logo" src="assets/nunsa-logo.png"/>
+<div>
+<h1>NUNSA-FUD</h1>
+<p>Voter Management</p>
+</div>
+</div>
+<button class="secondary-btn" id="back-btn">
+            BACK
+        </button>
+</header>
+<main class="admin-container editorial-page layout-voters editorial-split"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">VOTER ELIGIBILITY</p><span class="intro-rule"></span></div><h2 aria-label="A reliable register matters." class="drop-headline">A reliable register matters.</h2><p class="intro-copy">Manage the students eligible to vote in this election.</p></section>
+<!-- ========================= -->
+<!-- PAGE INTRO -->
+<!-- ========================= -->
+<section class="admin-card" data-motion="rise">
+<h2>Voter Management</h2>
+<p>
+                Manage the eligible voters for this election.
+                Voters are identified using their matriculation numbers.
+            </p>
+<div class="election-info" id="election-info">
+<h3 id="election-title">Loading election...</h3>
+<p id="election-description"></p>
+<p id="election-status"></p>
+</div>
+</section>
+<!-- ========================= -->
+<!-- ACTIONS -->
+<!-- ========================= -->
+<section class="admin-card" data-motion="rise">
+<div class="section-header">
+<div>
+<h2>Voter List</h2>
+<p>
+                        Add voters individually or import many matric numbers at once.
+                    </p>
+</div>
+<div class="action-buttons">
+<button class="primary-btn" id="add-voter-btn">
+                        ADD VOTER
+                    </button>
+<button class="primary-btn" id="import-voters-btn">
+                        IMPORT VOTERS
+                    </button>
+</div>
+</div>
+</section>
+<!-- ========================= -->
+<!-- ADD ONE VOTER -->
+<!-- ========================= -->
+<section class="admin-card" data-motion="rise" id="add-voter-section" style="display: none;">
+<h2>Add Voter</h2>
+<p>
+                Enter the student's matriculation number.
+            </p>
+<form id="voter-form">
+<div class="form-group">
+<label for="voter-matric">
+                        Matric Number
+                    </label>
+<input id="voter-matric" placeholder="e.g. BMS/NUR/24/1004" required="" type="text"/>
+</div>
+<div class="form-actions">
+<button class="primary-btn" type="submit">
+                        ADD VOTER
+                    </button>
+<button class="secondary-btn" id="cancel-add-voter" type="button">
+                        CANCEL
+                    </button>
+</div>
+</form>
+<div class="message" id="voter-message"></div>
+</section>
+<!-- ========================= -->
+<!-- IMPORT VOTERS -->
+<!-- ========================= -->
+<section class="admin-card" data-motion="rise" id="import-section" style="display: none;">
+<h2>Import Voters</h2>
+<p>
+                Upload a CSV or Excel file containing the matriculation
+                numbers of eligible voters.
+            </p>
+<div class="import-instructions">
+<strong>File format:</strong>
+<p>
+                    Put one matric number on each row.
+                </p>
+<p>Example:</p>
+<pre>Matric Number
+FUD/NS/2024/001
+FUD/NS/2024/002
+FUD/NS/2024/003
+FUD/NS/2024/004</pre>
+<p>
+                    You can also upload a spreadsheet where the matric
+                    numbers are in the first column.
+                </p>
+</div>
+<div class="form-group">
+<label for="voter-file">
+                    Select File
+                </label>
+<input accept=".csv,.xlsx,.xls" id="voter-file" type="file"/>
+<small>
+                    Supported files: CSV, XLSX and XLS
+                </small>
+</div>
+<div class="form-actions">
+<button class="primary-btn" id="preview-import-btn" type="button">
+                    PREVIEW IMPORT
+                </button>
+<button class="secondary-btn" id="cancel-import-btn" type="button">
+                    CANCEL
+                </button>
+</div>
+<div class="message" id="import-message"></div>
+<!-- ========================= -->
+<!-- IMPORT PREVIEW -->
+<!-- ========================= -->
+<div id="import-preview" style="display: none;">
+<hr/>
+<h3>Import Preview</h3>
+<div class="import-summary" id="import-summary"></div>
+<div class="preview-table-wrapper">
+<table class="admin-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Matric Number</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="import-preview-body">
+</tbody>
+</table>
+</div>
+<div class="form-actions">
+<button class="primary-btn" id="confirm-import-btn" type="button">
+                        IMPORT VALID VOTERS
+                    </button>
+<button class="secondary-btn" id="clear-import-btn" type="button">
+                        CLEAR
+                    </button>
+</div>
+</div>
+</section>
+<!-- ========================= -->
+<!-- ELIGIBLE VOTERS -->
+<!-- ========================= -->
+<section class="admin-card" data-motion="rise">
+<div class="section-header">
+<div>
+<h2>Eligible Voters</h2>
+<p>
+<span id="voter-count">0</span>
+                        voter(s)
+                    </p>
+</div>
+</div>
+<div class="voter-list" id="voter-list">
+                Loading voters...
+            </div>
+</section>
+</main>
+<script src="voters.js" type="module"></script>
+<script defer="True" src="motion.js"></script></body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="#faf9f5" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NUNSA-FUD Results</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-results">
+<header class="site-header editorial-topbar"><div class="brand-lockup"><img alt="NUNSA-FUD Logo" class="association-logo" src="assets/nunsa-logo.png"/><div class="brand-copy"><h1>NUNSA-FUD</h1><p>Election Results</p></div></div>
+
+
+
+</header>
+<main class="page-container editorial-page layout-results results-page"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">ELECTION REPORT</p><span class="intro-rule"></span></div><h2 aria-label="A clear view of the result." class="drop-headline">A clear view of the result.</h2><p class="intro-copy">Review candidate totals and the final published outcome.</p></section>
+<section class="card" data-motion="rise" id="results-header-card">
+<h2 id="election-title">Election Results</h2>
+<p id="election-description"></p>
+<div class="status-box" id="election-status">
+                Loading election...
+            </div>
+<div class="results-summary">
+<div class="summary-card">
+<span>Total Votes</span>
+<strong id="total-votes">0</strong>
+</div>
+<div class="summary-card">
+<span>Candidates</span>
+<strong id="candidate-count">0</strong>
+</div>
+</div>
+</section>
+<section class="card" data-motion="rise">
+<h2>Candidate Results</h2>
+<div id="results-list">
+<p>Loading results...</p>
+</div>
+</section>
+<section class="card" data-motion="rise" id="result-image-section">
+<h2>Final Result</h2>
+<p id="result-image-message">
+                The official result image will become available after the election ends.
+            </p>
+<button id="generate-result-image-btn" style="display:none;" type="button">
+                GENERATE RESULT IMAGE
+            </button>
+<div id="result-image-preview"></div>
+<button id="download-result-image-btn" style="display:none;" type="button">
+                DOWNLOAD RESULT IMAGE 
+            </button>
+</section>
+<section class="card" data-motion="rise">
+<button id="back-btn" type="button">
+                BACK
+            </button>
+</section>
+</main>
+<script src="results.js" type="module"></script>
+<script defer="True" src="motion.js"></script></body>
+</html>
