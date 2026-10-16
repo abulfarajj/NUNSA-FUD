@@ -1,4 +1,6 @@
 const admin = require("firebase-admin");
+const { logError } = require("./_lib/guard");
+const { loadAllSelections } = require("./_lib/ballots");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -217,15 +219,9 @@ exports.handler = async (event) => {
                 )
                 .get();
 
-        const votesSnapshot =
-            await db
-                .collection("votes")
-                .where(
-                    "electionId",
-                    "==",
-                    electionId
-                )
-                .get();
+        // Choices live in `ballots` (no voter attached); `votes` only says who voted.
+        const { ballots: allBallots, turnout } =
+            await loadAllSelections(db, electionId);
 
         const candidates =
             candidatesSnapshot.docs.map(
@@ -286,21 +282,10 @@ exports.handler = async (event) => {
             }
         );
 
-        const totalVotes =
-            votesSnapshot.size;
+        const totalVotes = turnout;
 
-        votesSnapshot.forEach(
-            (voteDoc) => {
-
-                const vote =
-                    voteDoc.data();
-
-                const selections =
-                    Array.isArray(
-                        vote.selections
-                    )
-                        ? vote.selections
-                        : [];
+        allBallots.forEach(
+            (selections) => {
 
                 selections.forEach(
                     (selection) => {
@@ -395,9 +380,14 @@ exports.handler = async (event) => {
                 admin.firestore.FieldValue.serverTimestamp()
         };
 
-        await resultRef.create(
-            resultData
-        );
+        try {
+            await resultRef.create(resultData);
+        } catch (createError) {
+            // Two admins finalizing at the same moment: the first one wins, we return its result.
+            if (createError.code !== 6) {
+                throw createError;
+            }
+        }
 
         const finalSnapshot =
             await resultRef.get();
@@ -417,10 +407,7 @@ exports.handler = async (event) => {
 
     } catch (error) {
 
-        console.error(
-            "Finalize election results error:",
-            error
-        );
+        logError("Finalize election results error:", error);
 
         return {
             statusCode: 500,

@@ -32,6 +32,8 @@ const resultsBtn = document.getElementById("results-btn");
 
 const studentsBtn = document.getElementById("students-btn");
 
+const formsBtn = document.getElementById("forms-btn");
+
 onAuthStateChanged(auth, async (user) => {
 
 if (!user) { window.location.href = "admin-login.html"; return; } try { const adminRef = doc( db, "admins", user.uid ); const adminSnapshot = await getDoc(adminRef); if (!adminSnapshot.exists()) { console.error( "Admin record not found." ); await signOut(auth); window.location.href = "admin-login.html"; return; } const adminData = adminSnapshot.data(); if (adminData.active !== true) { console.error( "Admin account is inactive." ); await signOut(auth); window.location.href = "admin-login.html"; return; } if ( adminData.role !== "admin" && adminData.role !== "super_admin" ) { console.error( "Invalid administrator role." ); await signOut(auth); window.location.href = "admin-login.html"; return; } adminName.textContent = adminData.name || "Administrator"; adminRole.textContent = adminData.role === "super_admin" ? "Super Admin" : "Admin"; if ( adminData.role === "super_admin" ) { superAdminSection.style.display = "block"; votersBtn.style.display = "block"; } else { superAdminSection.style.display = "none"; votersBtn.style.display = "none"; } } catch (error) { console.error( "Admin verification error:", error ); await signOut(auth); window.location.href = "admin-login.html"; } 
@@ -80,3 +82,4 @@ try { await signOut(auth); window.location.href = "admin-login.html"; } catch (e
 
 );
 
+formsBtn.addEventListener("click", () => { window.location.href = "forms.html"; });

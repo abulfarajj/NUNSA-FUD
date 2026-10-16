@@ -1,0 +1,246 @@
+rules_version = '2';
+
+service cloud.firestore {
+
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function activeAdmin() {
+      return signedIn()
+        && get(
+          /databases/$(database)/documents/admins/$(request.auth.uid)
+        ).data.active == true;
+    }
+
+    function superAdmin() {
+      return signedIn()
+        && get(
+          /databases/$(database)/documents/admins/$(request.auth.uid)
+        ).data.active == true
+        && get(
+          /databases/$(database)/documents/admins/$(request.auth.uid)
+        ).data.role == "super_admin";
+    }
+
+    match /admins/{adminId} {
+      allow read: if activeAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /adminInvitations/{invitationId} {
+      allow read: if superAdmin()
+        ||
+        (
+          signedIn()
+          && resource.data.status == "pending"
+          && resource.data.email == request.auth.token.email
+        );
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    function validFormPosition(data) {
+      return data.electionId is string
+        && data.position is string
+        && data.position.size() > 0
+        && data.position.size() <= 80
+        && data.active is bool;
+    }
+
+    match /elections/{electionId} {
+      allow read: if activeAdmin()
+        || (
+          signedIn()
+          && (
+            resource.data.status == "published" ||
+            resource.data.status == "ended"
+          )
+        );
+
+      allow create: if activeAdmin()
+        && request.resource.data.title is string
+        && request.resource.data.description is string
+        && request.resource.data.status is string
+        && request.resource.data.createdBy == request.auth.uid;
+
+      allow update: if activeAdmin()
+        && request.resource.data.createdBy == resource.data.createdBy
+        && (
+          resource.data.status == "draft"
+          ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            "description"
+          ])
+        );
+
+      allow delete: if superAdmin();
+    }
+
+    // A signed-in STUDENT is identified by the "matricNumber" claim that
+    // student-login.js puts inside their token. Admins have no such claim.
+    function isOwnMatric(matric) {
+      return signedIn()
+        && request.auth.token.matricNumber is string
+        && request.auth.token.matricNumber == matric;
+    }
+
+    match /students/{studentId} {
+      // Admins read any student; a student reads ONLY their own record.
+      allow get: if activeAdmin()
+        || (
+          resource.data.status == "active"
+          && isOwnMatric(resource.data.matricNumber)
+        );
+
+      allow list: if activeAdmin();
+
+      allow create: if activeAdmin()
+        && request.resource.data.matricNumber is string
+        && request.resource.data.name is string
+        && request.resource.data.status == "active";
+
+      // A student may change ONLY profilePicture, ONLY on their own record,
+      // and ONLY to an image hosted on this project's Cloudinary account.
+      allow update: if activeAdmin()
+        || (
+          resource.data.status == "active"
+          && isOwnMatric(resource.data.matricNumber)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            "profilePicture"
+          ])
+          && request.resource.data.profilePicture is string
+          && request.resource.data.profilePicture.size() < 500
+          && request.resource.data.profilePicture.matches(
+            "^https://res\\.cloudinary\\.com/buwozjy8/[A-Za-z0-9_./%~-]+$"
+          )
+        );
+
+      allow delete: if superAdmin();
+    }
+
+    // Only admin pages use this collection; students never read it directly
+    // (the Netlify functions use the Admin SDK).
+    match /studentAccess/{accessId} {
+      allow get: if activeAdmin();
+      allow list: if activeAdmin();
+
+      allow create: if activeAdmin()
+        && request.resource.data.matricNumber is string
+        && request.resource.data.studentDocumentId is string
+        && request.resource.data.active == true;
+
+      allow update: if activeAdmin();
+      allow delete: if superAdmin();
+    }
+
+    match /voters/{voterId} {
+      // A student can read only THEIR OWN voter record.
+      allow get: if superAdmin()
+        || (
+          resource.data.status == "active"
+          && isOwnMatric(resource.data.matricNumber)
+        );
+
+      allow list: if superAdmin();
+
+      // Voters are added / imported / removed ONLY by the manage-voters
+      // Netlify Function (Admin SDK), which writes an audit-log entry in the
+      // same batch. Browsers can no longer change this collection directly.
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // Who changed the voter list, when, and during which phase of the election.
+    // Written only by the server; readable by Super Admins only.
+    match /auditLogs/{logId} {
+      allow read: if superAdmin();
+      allow write: if false;
+    }
+
+    // Candidates can be added, edited or removed ONLY while the election is
+    // still a draft, so nobody can change a name/position after voting starts.
+    // Candidate applications. Admins list the positions students may apply for
+    // while the election is still a draft. Students never read this collection
+    // directly (they use the get-form-offers function).
+    match /formPositions/{positionId} {
+      allow read: if activeAdmin();
+
+      allow create: if activeAdmin()
+        && validFormPosition(request.resource.data)
+        && get(
+          /databases/$(database)/documents/elections/$(request.resource.data.electionId)
+        ).data.status == "draft";
+
+      allow update: if activeAdmin()
+        && validFormPosition(request.resource.data)
+        && request.resource.data.electionId == resource.data.electionId
+        && get(
+          /databases/$(database)/documents/elections/$(resource.data.electionId)
+        ).data.status == "draft";
+
+      allow delete: if activeAdmin()
+        && get(
+          /databases/$(database)/documents/elections/$(resource.data.electionId)
+        ).data.status == "draft";
+    }
+
+    // Candidate applications (one per student per election). Written ONLY by the
+    // Netlify Functions (apply and applicant review). Admins can read.
+    match /applications/{applicationId} {
+      allow read: if activeAdmin();
+      allow write: if false;
+    }
+
+    match /candidates/{candidateId} {
+      allow read: if activeAdmin();
+
+      allow create: if activeAdmin()
+        && request.resource.data.electionId is string
+        && request.resource.data.name is string
+        && request.resource.data.matricNumber is string
+        && request.resource.data.status == "active"
+        && get(
+          /databases/$(database)/documents/elections/$(request.resource.data.electionId)
+        ).data.status == "draft";
+
+      allow update: if activeAdmin()
+        && request.resource.data.electionId == resource.data.electionId
+        && get(
+          /databases/$(database)/documents/elections/$(resource.data.electionId)
+        ).data.status == "draft";
+
+      allow delete: if activeAdmin()
+        && get(
+          /databases/$(database)/documents/elections/$(resource.data.electionId)
+        ).data.status == "draft";
+    }
+
+    match /votes/{voteId} {
+      allow get: if signedIn()
+        && resource.data.authUid == request.auth.uid;
+
+      allow list, create, update, delete: if false;
+    }
+
+    match /results/{resultId} {
+      allow read: if activeAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if superAdmin();
+    }
+
+    // Server-only collections (Admin SDK bypasses rules; clients get nothing):
+    // studentAccounts, emailVerifications, pinResetCodes, rateLimits, electionTallies,
+    // ballots (the anonymous choices; the `votes` collection only records WHO voted)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

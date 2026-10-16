@@ -945,12 +945,16 @@ async function loadCandidates() {
                         <span
                             class="position-badge"
                         >
-                            ${escapeHtml(
+                                                        ${escapeHtml(
                                 candidate.position ||
                                 "No position"
                             )}
                         </span>
-
+                        ${
+                            candidate.status === "disqualified"
+                                ? `<span class="position-badge" style="background:#b3261e;color:#fff;margin-left:6px;">DISQUALIFIED - not on ballot</span>`
+                                : ""
+                        }
                     </div>
 
                     ${

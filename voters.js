@@ -14,10 +14,7 @@ import {
     getDoc,
     getDocs,
     query,
-    where,
-    setDoc,
-    serverTimestamp,
-    writeBatch
+    where
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -74,6 +71,34 @@ function normalizeMatric(value) {
 
 function voterDocumentId(electionId, matricNumber) {
     return electionId + "_" + normalizeMatric(matricNumber).replace(/[^A-Z0-9]/g, "");
+}
+
+/* Voter changes go through a Netlify Function so that every add / import /
+   removal is written to the audit log together with the change itself. */
+async function callManageVoters(payload) {
+    const token = await auth.currentUser.getIdToken();
+
+    const response = await fetch("/.netlify/functions/manage-voters", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(payload)
+    });
+
+    let result;
+    try {
+        result = await response.json();
+    } catch {
+        result = { success: false, message: "The server returned an invalid response." };
+    }
+
+    if (!response.ok || result.success !== true) {
+        throw new Error(result.message || "Unable to update the voter list.");
+    }
+
+    return result;
 }
 
 async function checkAdmin(user) {
@@ -171,6 +196,38 @@ async function loadVoters() {
         item.appendChild(matric);
         item.appendChild(status);
 
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "voter-remove-btn";
+        removeBtn.textContent = "Remove";
+        removeBtn.addEventListener("click", async () => {
+            const warning = currentElection && currentElection.status === "published"
+                ? "Voting may be in progress. "
+                : "";
+
+            if (!confirm(
+                `${warning}Remove ${voter.matricNumber} from this election's voter list? ` +
+                "This is recorded in the audit log."
+            )) {
+                return;
+            }
+
+            removeBtn.disabled = true;
+
+            try {
+                await callManageVoters({
+                    action: "remove",
+                    electionId: currentElectionId,
+                    matricNumber: voter.matricNumber
+                });
+                await loadVoters();
+            } catch (error) {
+                alert(error.message || "Unable to remove this voter.");
+                removeBtn.disabled = false;
+            }
+        });
+        item.appendChild(removeBtn);
+
         voterList.appendChild(item);
     });
 }
@@ -200,43 +257,14 @@ voterForm.addEventListener("submit", async (event) => {
     }
 
     try {
-        const studentQuery = query(
-            collection(db, "students"),
-            where("matricNumber", "==", matricNumber)
-        );
-
-        const studentSnapshot = await getDocs(studentQuery);
-
-        if (studentSnapshot.empty) {
-            voterMessage.textContent =
-                "This matric number does not exist in the student list.";
-            return;
-        }
-
-        const voterId = voterDocumentId(
-            currentElectionId,
-            matricNumber
-        );
-
-        const voterRef = doc(db, "voters", voterId);
-        const existingVoter = await getDoc(voterRef);
-
-        if (existingVoter.exists()) {
-            voterMessage.textContent =
-                "This student is already an eligible voter for this election.";
-            return;
-        }
-
-        await setDoc(voterRef, {
+        const result = await callManageVoters({
+            action: "add",
             electionId: currentElectionId,
-            matricNumber,
-            status: "active",
-            createdBy: auth.currentUser.uid,
-            createdAt: serverTimestamp()
+            matricNumber
         });
 
         voterForm.reset();
-        voterMessage.textContent = "Voter added successfully.";
+        voterMessage.textContent = result.message || "Voter added successfully.";
 
         await loadVoters();
 
@@ -409,33 +437,20 @@ confirmImportBtn.addEventListener("click", async () => {
     importMessage.textContent = "Importing voters...";
 
     try {
-        for (let i = 0; i < importedVoters.length; i += 200) {
-            const batch = writeBatch(db);
+        const result = await callManageVoters({
+            action: "import",
+            electionId: currentElectionId,
+            matricNumbers: importedVoters
+        });
 
-            const chunk = importedVoters.slice(i, i + 200);
-
-            chunk.forEach((matricNumber) => {
-                const voterId = voterDocumentId(
-                    currentElectionId,
-                    matricNumber
-                );
-
-                const voterRef = doc(db, "voters", voterId);
-
-                batch.set(voterRef, {
-                    electionId: currentElectionId,
-                    matricNumber,
-                    status: "active",
-                    createdBy: auth.currentUser.uid,
-                    createdAt: serverTimestamp()
-                });
-            });
-
-            await batch.commit();
+        let summary = `${result.added} voter(s) imported successfully.`;
+        if (result.skippedExisting) {
+            summary += ` ${result.skippedExisting} already on the list.`;
         }
-
-        importMessage.textContent =
-            `${importedVoters.length} voter(s) imported successfully.`;
+        if (result.notInStudentListCount) {
+            summary += ` Warning: ${result.notInStudentListCount} matric number(s) are not in the student list yet.`;
+        }
+        importMessage.textContent = summary;
 
         importedVoters = [];
         voterFileInput.value = "";

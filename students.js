@@ -51,6 +51,8 @@ const studentList =
 
 let allStudents = [];
 
+let currentAdminRole = "";
+
 function normalizeMatric(value) {
     return String(value || "")
         .trim()
@@ -496,15 +498,145 @@ function renderStudents(
                 matric
             );
 
-            card.appendChild(
+                        card.appendChild(
                 status
             );
+
+            // Super Admins only, and only for students who have registered.
+            if (
+                currentAdminRole === "super_admin" &&
+                student.accountCreated === true
+            ) {
+                const resetButton =
+                    document.createElement(
+                        "button"
+                    );
+
+                resetButton.type =
+                    "button";
+
+                resetButton.className =
+                    "student-reset-btn";
+
+                resetButton.textContent =
+                    "Reset registration";
+
+                resetButton.addEventListener(
+                    "click",
+                    () => resetRegistration(
+                        student,
+                        resetButton
+                    )
+                );
+
+                card.appendChild(
+                    resetButton
+                );
+            }
 
             studentList.appendChild(
                 card
             );
         }
     );
+}
+
+async function callResetRegistration(
+    action,
+    matricNumber
+) {
+    const token =
+        await auth.currentUser.getIdToken();
+
+    const response =
+        await fetch(
+            "/.netlify/functions/reset-student-registration",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json",
+                    "Authorization":
+                        "Bearer " + token
+                },
+                body: JSON.stringify({
+                    action,
+                    matricNumber
+                })
+            }
+        );
+
+    let result;
+
+    try {
+        result =
+            await response.json();
+    } catch {
+        result = {
+            success: false,
+            message:
+                "The server returned an invalid response."
+        };
+    }
+
+    if (
+        !response.ok ||
+        result.success !== true
+    ) {
+        throw new Error(
+            result.message ||
+            "Unable to reset this registration."
+        );
+    }
+
+    return result;
+}
+
+/* Undo a registration made under the wrong e-mail so the real student can sign up again. */
+async function resetRegistration(
+    student,
+    button
+) {
+    button.disabled = true;
+
+    try {
+        const preview =
+            await callResetRegistration(
+                "preview",
+                student.matricNumber
+            );
+
+        const confirmed =
+            confirm(
+                "Reset the registration for " +
+                student.matricNumber +
+                "?\n\nIt is currently registered with:\n" +
+                (preview.registeredEmail || "(no e-mail)") +
+                "\n\nThat account and its PIN will be deleted. The student can then sign up again with their own e-mail. This is recorded in the audit log."
+            );
+
+        if (!confirmed) {
+            button.disabled = false;
+            return;
+        }
+
+        const result =
+            await callResetRegistration(
+                "reset",
+                student.matricNumber
+            );
+
+        alert(result.message);
+
+        await loadStudents();
+    } catch (error) {
+        alert(
+            error.message ||
+            "Unable to reset this registration."
+        );
+
+        button.disabled = false;
+    }
 }
 
 function filterStudents() {
@@ -769,9 +901,13 @@ onAuthStateChanged(
         }
 
         try {
-            await checkAdmin(
-                user
-            );
+                        const adminInfo =
+                await checkAdmin(
+                    user
+                );
+
+            currentAdminRole =
+                adminInfo.role;
 
             await loadStudents();
 

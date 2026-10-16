@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { logError, isInvitationExpired } = require("./_lib/guard");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -104,6 +105,20 @@ exports.handler = async (event) => {
                     success: false,
                     message:
                         "This invitation has already been accepted or is no longer available."
+                })
+            };
+        }
+
+        if (isInvitationExpired(invitation)) {
+            return {
+                statusCode: 410,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    success: false,
+                    message:
+                        "This invitation has expired. Please ask a Super Admin to send you a new invitation."
                 })
             };
         }
@@ -325,10 +340,7 @@ exports.handler = async (event) => {
                 await admin.auth()
                     .deleteUser(firebaseUser.uid);
             } catch (deleteError) {
-                console.error(
-                    "Failed to roll back Firebase user:",
-                    deleteError
-                );
+                logError("Failed to roll back Firebase user:", deleteError);
             }
 
             throw error;
@@ -348,10 +360,7 @@ exports.handler = async (event) => {
 
     } catch (error) {
 
-        console.error(
-            "Accept invitation error:",
-            error
-        );
+        logError("Accept invitation error:", error);
 
         return {
             statusCode: 500,

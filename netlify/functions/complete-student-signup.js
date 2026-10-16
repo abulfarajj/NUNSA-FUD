@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { logError } = require("./_lib/guard");
 const crypto = require("crypto");
 
 if (!admin.apps.length) {
@@ -416,10 +417,7 @@ exports.handler = async (event) => {
 
             } catch (deleteError) {
 
-                console.error(
-                    "Failed to roll back Firebase user:",
-                    deleteError
-                );
+                logError("Failed to roll back Firebase user:", deleteError);
             }
 
             throw error;
@@ -453,10 +451,7 @@ exports.handler = async (event) => {
 
     } catch (error) {
 
-        console.error(
-            "Complete student signup error:",
-            error
-        );
+        logError("Complete student signup error:", error);
 
         return {
             statusCode: 500,

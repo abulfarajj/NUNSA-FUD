@@ -327,11 +327,24 @@ onAuthStateChanged(auth, async user => {
 });
 
 // Refresh results periodically while the election is upcoming or in progress.
-// The existing total-vote value continues to come directly from the results API.
-setInterval(() => {
+// 30 seconds (was 10) keeps the live feel but cuts server calls and Firestore
+// reads by two thirds. Paused while the tab is hidden; refreshes at once when
+// the student comes back to the tab.
+const RESULTS_REFRESH_MS = 30000;
+
+function shouldRefreshResults() {
     const status = currentResults?.electionStatus;
-    if (currentUser && !document.hidden && (!status || status === "upcoming" || status === "active")) {
+    return currentUser && !document.hidden && (!status || status === "upcoming" || status === "active");
+}
+
+setInterval(() => {
+    if (shouldRefreshResults()) {
         loadResults();
     }
-}, 10000);
+}, RESULTS_REFRESH_MS);
 
+document.addEventListener("visibilitychange", () => {
+    if (shouldRefreshResults()) {
+        loadResults();
+    }
+});

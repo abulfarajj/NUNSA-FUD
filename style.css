@@ -917,3 +917,49 @@ footer{font-size:.8rem;border-top:1px solid var(--border);margin-top:8px}
 .result-card-info{flex:1 1 0;min-width:0}
 .result-card-info h3{overflow-wrap:anywhere}
 .result-bar-fill{transition:width .4s ease}
+
+/* Voters page: remove button */
+.voter-remove-btn{margin-left:auto;padding:6px 12px;font-size:.8rem;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;color:inherit;cursor:pointer}
+.voter-remove-btn:hover:not(:disabled){border-color:#b3261e;color:#b3261e}
+.voter-remove-btn:disabled{opacity:.5;cursor:default}
+
+/* Students page: e-mail edit button */
+.student-email-btn{margin-top:6px;padding:6px 12px;font-size:.8rem;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;color:inherit;cursor:pointer}
+.student-email-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+.student-email-btn:disabled{opacity:.5;cursor:default}
+
+/* 6-digit e-mail codes: six boxes in one row, shrinking on small screens */
+.pin-input-group.code-6{gap:8px;flex-wrap:nowrap}
+.pin-input-group.code-6 .pin-box{width:clamp(38px,11.5vw,52px)!important;height:56px;font-size:1.35rem}
+@media (max-width:360px){
+  .pin-input-group.code-6{gap:5px}
+  .pin-input-group.code-6 .pin-box{width:clamp(34px,12.5vw,42px)!important;height:50px}
+}
+
+/* Students page: reset registration button */
+.student-reset-btn{margin-top:8px;padding:6px 12px;font-size:.8rem;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;color:inherit;cursor:pointer}
+.student-reset-btn:hover:not(:disabled){border-color:#b3261e;color:#b3261e}
+.student-reset-btn:disabled{opacity:.5;cursor:default}
+
+/* Candidate forms (admin page + student dashboard) */
+.forms-note{color:var(--muted);font-size:.92rem;margin:6px 0 12px}
+.forms-message{margin-top:10px;font-size:.92rem}
+.forms-box{display:grid;gap:10px;max-width:520px}
+.forms-label{font-size:.85rem;font-weight:600;margin-top:4px}
+.forms-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-sm);font:inherit;background:#fff}
+.forms-levels{display:flex;flex-wrap:wrap;gap:8px 16px}
+.forms-check{display:inline-flex;align-items:center;gap:6px;font-size:.95rem}
+.forms-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.forms-list{display:grid;gap:12px}
+.forms-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 10px rgba(12,43,49,.04)}
+.forms-card-main{flex:1 1 220px;min-width:0}
+.forms-card-main h4{font-size:1.05rem;font-weight:600;margin:0 0 4px}
+.forms-card-main p{color:var(--muted);font-size:.9rem;margin:2px 0}
+.forms-ghost{padding:8px 14px;font-size:.85rem;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;color:inherit;cursor:pointer}
+.forms-ghost:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+.forms-ghost:disabled{opacity:.5;cursor:default}
+.forms-danger:hover:not(:disabled){border-color:#b3261e;color:#b3261e}
+.forms-status{font-weight:600}
+.forms-status-paid{color:var(--success)}
+.forms-status-disqualified{color:#b3261e}
+.forms-status-pending_payment,.forms-status-paid_late{color:var(--warning)}
