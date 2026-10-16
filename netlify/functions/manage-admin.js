@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { logError } = require("./_lib/guard");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -168,6 +169,17 @@ exports.handler = async (event) => {
         const targetAdmin =
             targetAdminSnapshot.data();
 
+        if (targetAdmin.founder === true) {
+            return {
+                statusCode: 403,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    success: false,
+                    message: "The primary Super Admin cannot be deactivated."
+                })
+            };
+        }
+
         if (targetAdmin.role === "super_admin") {
 
             const isFounder =
@@ -218,10 +230,7 @@ exports.handler = async (event) => {
 
     } catch (error) {
 
-        console.error(
-            "Admin management error:",
-            error
-        );
+        logError("Admin management error:", error);
 
         if (
             error.code === "auth/id-token-expired"

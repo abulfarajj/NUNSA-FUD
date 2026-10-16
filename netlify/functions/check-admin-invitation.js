@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { logError, isInvitationExpired } = require("./_lib/guard");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -89,6 +90,20 @@ exports.handler = async (event) => {
             };
         }
 
+        if (isInvitationExpired(invitation)) {
+            return {
+                statusCode: 410,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    success: false,
+                    message:
+                        "This invitation has expired. Please ask a Super Admin to send you a new invitation."
+                })
+            };
+        }
+
         if (
             !invitation.email ||
             !invitation.name ||
@@ -141,10 +156,7 @@ exports.handler = async (event) => {
 
     } catch (error) {
 
-        console.error(
-            "Invitation verification error:",
-            error
-        );
+        logError("Invitation verification error:", error);
 
         return {
             statusCode: 500,

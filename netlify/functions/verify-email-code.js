@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { logError, isValidEmailCode } = require("./_lib/guard");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -61,7 +62,7 @@ exports.handler = async (event) => {
             };
         }
 
-        if (!/^\d{4}$/.test(code)) {
+        if (!isValidEmailCode(code)) {
             return {
                 statusCode: 400,
                 headers: {
@@ -69,7 +70,7 @@ exports.handler = async (event) => {
                 },
                 body: JSON.stringify({
                     success: false,
-                    message: "Verification code must be 4 digits."
+                    message: "Verification code must be 6 digits."
                 })
             };
         }
@@ -180,10 +181,21 @@ exports.handler = async (event) => {
             };
         }
 
-        const attempts =
-            Number(verificationData.attempts || 0);
+        // Reserve this attempt atomically BEFORE comparing, so parallel guesses cannot beat the 5-try limit.
+        const reservation = await db.runTransaction(async transaction => {
+            const current = await transaction.get(verificationRef);
+            if (!current.exists) {
+                return { blocked: true, missing: true };
+            }
+            const used = Number(current.data().attempts || 0);
+            if (used >= 5) {
+                return { blocked: true };
+            }
+            transaction.update(verificationRef, { attempts: used + 1 });
+            return { blocked: false };
+        });
 
-        if (attempts >= 5) {
+        if (reservation.blocked) {
             return {
                 statusCode: 429,
                 headers: {
@@ -217,10 +229,6 @@ exports.handler = async (event) => {
 
         if (verificationData.code !== code) {
 
-            await verificationRef.update({
-                attempts: admin.firestore.FieldValue.increment(1)
-            });
-
             return {
                 statusCode: 401,
                 headers: {
@@ -252,10 +260,7 @@ exports.handler = async (event) => {
 
     } catch (error) {
 
-        console.error(
-            "Email verification error:",
-            error
-        );
+        logError("Email verification error:", error);
 
         return {
             statusCode: 500,

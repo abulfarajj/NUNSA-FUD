@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { logError, isValidEmailCode } = require("./_lib/guard");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -50,12 +51,12 @@ exports.handler = async function(event) {
             };
         }
 
-        if (!/^\d{4}$/.test(code)) {
+        if (!isValidEmailCode(code)) {
             return {
                 statusCode: 400,
                 body: JSON.stringify({
                     success: false,
-                    message: "Enter the 4-digit verification code."
+                    message: "Enter the 6-digit verification code."
                 })
             };
         }
@@ -142,10 +143,22 @@ exports.handler = async function(event) {
             };
         }
 
-        const attempts = Number(resetData.attempts || 0);
+        // Reserve this attempt atomically BEFORE comparing, so parallel guesses cannot beat the 5-try limit.
+        const reservation = await db.runTransaction(async transaction => {
+            const current = await transaction.get(resetRef);
+            if (!current.exists) {
+                return { blocked: true, missing: true };
+            }
+            const used = Number(current.data().attempts || 0);
+            if (used >= 5) {
+                return { blocked: true };
+            }
+            transaction.update(resetRef, { attempts: used + 1 });
+            return { blocked: false };
+        });
 
-        if (attempts >= 5) {
-            await resetRef.delete();
+        if (reservation.blocked) {
+            await resetRef.delete().catch(() => {});
 
             return {
                 statusCode: 429,
@@ -157,10 +170,6 @@ exports.handler = async function(event) {
         }
 
         if (resetData.code !== code) {
-            await resetRef.update({
-                attempts: attempts + 1
-            });
-
             return {
                 statusCode: 400,
                 body: JSON.stringify({
@@ -184,7 +193,7 @@ exports.handler = async function(event) {
         };
 
     } catch (error) {
-        console.error("Verify PIN reset code error:", error);
+        logError("Verify PIN reset code error:", error);
 
         return {
             statusCode: 500,

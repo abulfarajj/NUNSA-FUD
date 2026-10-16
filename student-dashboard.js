@@ -352,7 +352,9 @@ onAuthStateChanged(
             return;
         }
 
-        await loadStudent();
+                await loadStudent();
+
+        loadForms();
     }
 );
 
@@ -425,3 +427,138 @@ logoutButton.addEventListener(
         }
     }
 );
+
+/* =====================================================
+   CANDIDATE APPLICATIONS
+   Students apply for a position while applications are open. The admins check
+   eligibility in real life and disqualify anyone who does not qualify.
+===================================================== */
+const formsSection = document.getElementById("forms-section");
+const formsOffers = document.getElementById("forms-offers");
+const formsApplications = document.getElementById("forms-applications");
+const formsFeedback = document.getElementById("forms-feedback");
+
+function formsText(tag, text, className) {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    if (className) node.className = className;
+    return node;
+}
+
+function formsSay(text, isError) {
+    formsFeedback.textContent = text || "";
+    formsFeedback.style.color = isError ? "#b3261e" : "inherit";
+}
+
+async function callFormsApi(name, payload) {
+    const token = await auth.currentUser.getIdToken();
+    const response = await fetch("/.netlify/functions/" + name, {
+        method: payload ? "POST" : "GET",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: payload ? JSON.stringify(payload) : undefined
+    });
+
+    let result;
+    try {
+        result = await response.json();
+    } catch {
+        result = { success: false, message: "The server returned an invalid response." };
+    }
+
+    if (!response.ok || result.success !== true) {
+        throw new Error(result.message || "Something went wrong.");
+    }
+    return result;
+}
+
+const APPLICATION_STATUS_TEXT = {
+    applied: "You have applied. Your name appears as a candidate unless the admins disqualify you after screening.",
+    disqualified: "You were disqualified after screening."
+};
+
+function renderFormsApplications(applications) {
+    formsApplications.textContent = "";
+    applications.forEach(application => {
+        const card = document.createElement("div");
+        card.className = "forms-card";
+        const main = document.createElement("div");
+        main.className = "forms-card-main";
+        main.appendChild(formsText("h4", `${application.position} - ${application.electionTitle || "Election"}`));
+        main.appendChild(formsText("p", APPLICATION_STATUS_TEXT[application.status] || application.status));
+        if (application.status === "disqualified" && application.disqualifiedReason) {
+            main.appendChild(formsText("p", "Reason: " + application.disqualifiedReason));
+        }
+        card.appendChild(main);
+        formsApplications.appendChild(card);
+    });
+}
+
+function renderFormsOffers(offers, applications) {
+    formsOffers.textContent = "";
+
+    offers.forEach(offer => {
+        // One application per election.
+        if (applications.some(a => a.electionId === offer.electionId)) return;
+
+        const box = document.createElement("div");
+        box.className = "forms-box";
+        box.appendChild(formsText("h3", offer.title || "Election"));
+
+        offer.positions.forEach(position => {
+            const card = document.createElement("div");
+            card.className = "forms-card";
+            const main = document.createElement("div");
+            main.className = "forms-card-main";
+            main.appendChild(formsText("h4", position.position));
+            card.appendChild(main);
+
+            const apply = formsText("button", "Apply", "vote-button");
+            apply.type = "button";
+            apply.addEventListener("click", () => applyForPosition(offer, position, apply));
+            card.appendChild(apply);
+            box.appendChild(card);
+        });
+
+        formsOffers.appendChild(box);
+    });
+}
+
+async function applyForPosition(offer, position, button) {
+    if (!confirm(
+        `Apply for ${position.position}?\n\n` +
+        "You can only apply for one position in this election. The admins will check that you qualify, and anyone who does not will be disqualified."
+    )) {
+        return;
+    }
+
+    button.disabled = true;
+    formsSay("Submitting your application...", false);
+
+    try {
+        const result = await callFormsApi("apply-for-position", {
+            electionId: offer.electionId,
+            positionId: position.id
+        });
+        formsSay(result.message, false);
+        await loadForms();
+    } catch (error) {
+        formsSay(error.message, true);
+        button.disabled = false;
+    }
+}
+
+async function loadForms() {
+    try {
+        const data = await callFormsApi("get-form-offers");
+        renderFormsApplications(data.applications || []);
+        renderFormsOffers(data.offers || [], data.applications || []);
+
+        const hasContent = (data.applications || []).length > 0 || formsOffers.children.length > 0;
+        formsSection.style.display = hasContent ? "block" : "none";
+    } catch (error) {
+        console.error("Candidate applications error:", error);
+    }
+}

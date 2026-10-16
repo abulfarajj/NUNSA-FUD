@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { logError, isValidEmailCode } = require("./_lib/guard");
 const crypto = require("crypto");
 
 if (!admin.apps.length) {
@@ -84,7 +85,7 @@ exports.handler = async function(event) {
             };
         }
 
-        if (!/^\d{4}$/.test(code)) {
+        if (!isValidEmailCode(code)) {
             return {
                 statusCode: 400,
                 headers: {
@@ -235,6 +236,33 @@ exports.handler = async function(event) {
             };
         }
 
+        // Reserve this attempt atomically BEFORE comparing the code (max 10 tries in total with the verify step, then the request is deleted).
+        const reservation = await db.runTransaction(async transaction => {
+            const current = await transaction.get(resetRef);
+            if (!current.exists) {
+                return { blocked: true };
+            }
+            const used = Number(current.data().attempts || 0);
+            // verify-pin-reset-code already allows 5 tries; allow 5 more here so a correct 5th try is never locked out.
+            if (used >= 10) {
+                transaction.delete(resetRef);
+                return { blocked: true };
+            }
+            transaction.update(resetRef, { attempts: used + 1 });
+            return { blocked: false };
+        });
+
+        if (reservation.blocked) {
+            return {
+                statusCode: 429,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    success: false,
+                    message: "Too many incorrect attempts. Please request a new code."
+                })
+            };
+        }
+
         if (resetData.code !== code) {
             return {
                 statusCode: 400,
@@ -321,10 +349,7 @@ exports.handler = async function(event) {
         };
 
     } catch (error) {
-        console.error(
-            "Reset student PIN error:",
-            error
-        );
+        logError("Reset student PIN error:", error);
 
         return {
             statusCode: 500,

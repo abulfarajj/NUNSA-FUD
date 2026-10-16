@@ -41,6 +41,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+let currentAdminRole = "";
+
 
 /* =====================================================
    ELEMENTS
@@ -145,10 +147,11 @@ onAuthStateChanged(
 
             }
 
+                        currentAdminRole =
+                adminData.role;
+
             await loadElections();
-
         } catch (error) {
-
             console.error(
                 "Admin verification error:",
                 error
@@ -558,19 +561,132 @@ function createElectionCard(election) {
         );
 
 
-    editBtn.addEventListener(
+        editBtn.addEventListener(
         "click",
         () => {
-
             editElection(election);
-
         }
     );
 
+    /* ---------------------------------------------
+       DELETE BUTTON (Super Admin only; the server checks too)
+    --------------------------------------------- */
+    if (currentAdminRole === "super_admin") {
+        const deleteBtn =
+            document.createElement(
+                "button"
+            );
+
+        deleteBtn.type =
+            "button";
+
+        deleteBtn.className =
+            "login-button delete-election-btn";
+
+        deleteBtn.textContent =
+            "DELETE";
+
+        deleteBtn.addEventListener(
+            "click",
+            () => {
+                deleteElection(
+                    election,
+                    deleteBtn
+                );
+            }
+        );
+
+        editBtn.parentElement.appendChild(
+            deleteBtn
+        );
+    }
 
     return card;
 }
 
+
+/* =====================================================
+   DELETE ELECTION (Super Admin) - for elections made or
+   published by mistake. Refused if any vote was cast.
+===================================================== */
+async function deleteElection(
+    election,
+    button
+) {
+    const answer =
+        prompt(
+            "Delete this election?\n\n" +
+            "This removes its candidates, applications, voter list and positions. " +
+            "It is refused if anyone has already voted.\n\n" +
+            "Type the election title to confirm:\n" +
+            (election.title || "")
+        );
+
+    if (answer === null) {
+        return;
+    }
+
+    button.disabled = true;
+
+    try {
+        const token =
+            await auth.currentUser.getIdToken();
+
+        const response =
+            await fetch(
+                "/.netlify/functions/delete-election",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+                        "Authorization":
+                            "Bearer " + token
+                    },
+                    body: JSON.stringify({
+                        electionId:
+                            election.id,
+                        confirmTitle:
+                            answer
+                    })
+                }
+            );
+
+        let result;
+
+        try {
+            result =
+                await response.json();
+        } catch {
+            result = {
+                success: false,
+                message:
+                    "The server returned an invalid response."
+            };
+        }
+
+        if (
+            !response.ok ||
+            result.success !== true
+        ) {
+            throw new Error(
+                result.message ||
+                "Unable to delete this election."
+            );
+        }
+
+        alert(result.message);
+
+        await loadElections();
+    } catch (error) {
+        alert(
+            error.message ||
+            "Unable to delete this election."
+        );
+
+        button.disabled = false;
+    }
+}
 
 /* =====================================================
    EDIT ELECTION

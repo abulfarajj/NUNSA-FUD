@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Candidate Applications - NUNSA-FUD</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-students">
+<header class="admin-header editorial-topbar">
+<div class="admin-header-left brand-lockup">
+<img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/>
+<div>
+<h1>NUNSA-FUD</h1>
+<p>Candidate Applications</p>
+</div>
+</div>
+<button class="logout-button" id="back-dashboard-btn" type="button">Dashboard</button>
+</header>
+<main class="admin-dashboard editorial-page">
+<section class="admin-welcome-card" data-motion="rise">
+<p class="small-label">BEFORE THE ELECTION</p>
+<h2>Candidate Applications</h2>
+<p>List the positions students may apply for. Students apply from their dashboard and appear here and as candidates straight away. Check each applicant in real life and disqualify those who do not qualify; the rest go on the ballot.</p>
+</section>
+
+<section class="dashboard-section" data-motion="rise">
+<h2>Election</h2>
+<p class="forms-note">Only draft elections can take applications. Once an election is published, applications close and the candidate list is locked.</p>
+<select id="form-election" class="forms-input"><option value="">Loading elections...</option></select>
+<p id="forms-message" class="forms-message"></p>
+</section>
+
+<div id="forms-workspace" style="display:none;">
+<section class="dashboard-section" data-motion="rise">
+<h2>Applications</h2>
+<p id="sales-status" class="forms-note"></p>
+<button class="vote-button" id="toggle-sales-btn" type="button">OPEN APPLICATIONS</button>
+</section>
+
+<section class="dashboard-section" data-motion="rise">
+<h2 id="position-form-title">Add a position</h2>
+<div class="forms-box">
+<label class="forms-label" for="position-name">Position name</label>
+<input class="forms-input" id="position-name" maxlength="80" placeholder="e.g. President" type="text"/>
+<label class="forms-check"><input checked id="position-active" type="checkbox"/> Open for applications</label>
+<div class="forms-actions">
+<button class="vote-button" id="save-position-btn" type="button">SAVE POSITION</button>
+<button class="forms-ghost" id="cancel-edit-btn" style="display:none;" type="button">Cancel edit</button>
+</div>
+</div>
+</section>
+
+<section class="dashboard-section" data-motion="rise">
+<h2>Positions</h2>
+<div class="forms-list" id="position-list"><p>No positions yet.</p></div>
+</section>
+
+<section class="dashboard-section" data-motion="rise">
+<h2>Applicants</h2>
+<p class="forms-note" id="money-summary"></p>
+<div class="forms-list" id="applicant-list"><p>No applicants yet.</p></div>
+</section>
+</div>
+</main>
+<footer>
+<p>NUNSA-FUD Electronic Voting System</p>
+</footer>
+<script src="forms.js" type="module"></script>
+<script defer="True" src="motion.js"></script></body>
+</html>

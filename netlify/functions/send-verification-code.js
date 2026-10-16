@@ -1,5 +1,6 @@
 const admin = require("firebase-admin");
 const crypto = require("crypto");
+const { enforceEmailCodeLimits, logError, generateEmailCode } = require("./_lib/guard");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -25,7 +26,7 @@ function matricDocumentId(value) {
 }
 
 function generateCode() {
-    return crypto.randomInt(1000, 10000).toString();
+    return generateEmailCode(); // 6 digits
 }
 
 exports.handler = async (event) => {
@@ -68,6 +69,9 @@ exports.handler = async (event) => {
                 })
             };
         }
+
+        const sendLimit = await enforceEmailCodeLimits(event, matricDocumentId(matricNumber), "signup");
+        if (sendLimit) { return sendLimit; }
 
         const accessRef =
             db
@@ -289,15 +293,9 @@ exports.handler = async (event) => {
             );
 
         if (!resendResponse.ok) {
-            const resendError =
-                await resendResponse.text();
-
             await verificationRef.delete();
 
-            console.error(
-                "Resend verification error:",
-                resendError
-            );
+            logError("Resend e-mail failed", { code: "http-" + resendResponse.status });
 
             return {
                 statusCode: 502,
@@ -322,15 +320,12 @@ exports.handler = async (event) => {
             body: JSON.stringify({
                 success: true,
                 message:
-                    "A 4-digit verification code has been sent to your email."
+                    "A 6-digit verification code has been sent to your email."
             })
         };
 
     } catch (error) {
-        console.error(
-            "Email verification code error:",
-            error
-        );
+        logError("Email verification code error:", error);
 
         return {
             statusCode: 500,

@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { logError } = require("./_lib/guard");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -209,10 +210,7 @@ exports.handler = async function(event) {
         };
 
     } catch (error) {
-        console.error(
-            "Get election candidates error:",
-            error
-        );
+        logError("Get election candidates error:", error);
 
         return {
             statusCode: 500,

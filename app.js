@@ -413,7 +413,7 @@ signupForm.addEventListener("submit", async event => {
                 "VERIFY EMAIL";
 
             signupMessage.textContent =
-                "A 4-digit verification code has been sent to your email.";
+                "A 6-digit verification code has been sent to your email.";
 
             focusFirstDigit(signupCodeGroup);
         } catch (error) {
@@ -432,9 +432,9 @@ signupForm.addEventListener("submit", async event => {
             signupCodeGroup
         );
 
-        if (!/^\d{4}$/.test(code)) {
+        if (!/^\d{6}$/.test(code)) {
             signupMessage.textContent =
-                "Please enter the 4-digit verification code.";
+                "Please enter the 6-digit verification code.";
             return;
         }
 
@@ -646,7 +646,7 @@ forgotPinForm.addEventListener("submit", async event => {
                 "VERIFY CODE";
 
             resetPinMessage.textContent =
-                "A 4-digit recovery code has been sent to the email address you used when creating your account.";
+                "A 6-digit recovery code has been sent to the email address you used when creating your account.";
 
             focusFirstDigit(resetCodeGroup);
         } catch (error) {
@@ -669,9 +669,9 @@ forgotPinForm.addEventListener("submit", async event => {
             resetCodeGroup
         );
 
-        if (!/^\d{4}$/.test(code)) {
+        if (!/^\d{6}$/.test(code)) {
             resetPinMessage.textContent =
-                "Please enter the 4-digit recovery code.";
+                "Please enter the 6-digit recovery code.";
             return;
         }
 
@@ -741,9 +741,9 @@ forgotPinForm.addEventListener("submit", async event => {
         resetConfirmPinGroup
     );
 
-    if (!/^\d{4}$/.test(code)) {
+    if (!/^\d{6}$/.test(code)) {
         resetPinMessage.textContent =
-            "Please enter the 4-digit recovery code.";
+            "Please enter the 6-digit recovery code.";
         return;
     }
 

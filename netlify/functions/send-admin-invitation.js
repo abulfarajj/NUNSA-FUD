@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { logError, isInvitationExpired, INVITATION_TTL_MS } = require("./_lib/guard");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -235,7 +236,27 @@ exports.handler = async (event) => {
                 .where("status", "==", "pending")
                 .get();
 
-        if (!invitationsSnapshot.empty) {
+        // A pending invitation that has run out no longer blocks a new one: retire it.
+        let hasLivePending = false;
+        let expiredCount = 0;
+        const expireBatch = db.batch();
+        invitationsSnapshot.forEach((invitationDoc) => {
+            if (isInvitationExpired(invitationDoc.data())) {
+                expireBatch.update(invitationDoc.ref, {
+                    status: "expired",
+                    expiredAt:
+                        admin.firestore.FieldValue.serverTimestamp()
+                });
+                expiredCount += 1;
+            } else {
+                hasLivePending = true;
+            }
+        });
+        if (expiredCount) {
+            await expireBatch.commit();
+        }
+
+        if (hasLivePending) {
             return {
                 statusCode: 400,
                 headers: {
@@ -267,6 +288,10 @@ exports.handler = async (event) => {
             status: "pending",
             createdAt:
                 admin.firestore.FieldValue.serverTimestamp(),
+            expiresAt:
+                admin.firestore.Timestamp.fromMillis(
+                    Date.now() + INVITATION_TTL_MS
+                ),
             createdBy: adminUid,
             createdByEmail:
                 currentAdmin.email ||
@@ -314,6 +339,7 @@ exports.handler = async (event) => {
                                         ACCEPT INVITATION
                                     </a>
                                 </p>
+                                <p>This invitation expires in 7 days.</p>
                                 <p>If you did not expect this invitation, you can ignore this email.</p>
                                 <p>NUNSA-FUD Electronic Voting System</p>
                             </div>
@@ -324,15 +350,9 @@ exports.handler = async (event) => {
 
         if (!resendResponse.ok) {
 
-            const resendError =
-                await resendResponse.text();
-
             await invitationRef.delete();
 
-            console.error(
-                "Resend error:",
-                resendError
-            );
+            logError("Resend e-mail failed", { code: "http-" + resendResponse.status });
 
             return {
                 statusCode: 502,
@@ -362,10 +382,7 @@ exports.handler = async (event) => {
 
     } catch (error) {
 
-        console.error(
-            "Admin invitation error:",
-            error
-        );
+        logError("Admin invitation error:", error);
 
         if (
             error.code ===
