@@ -27,7 +27,7 @@ let passed = 0, failed = 0;
 const failures = [];
 async function test(name, body) {
     fake.__reset();
-    sentEmails.length = 0;
+    sentEmails.length = 0; tgCalls.length = 0;
     try { await body(); passed++; console.log("  PASS  " + name); }
     catch (e) { failed++; failures.push(name); console.log("  FAIL  " + name + "\n        " + (e && e.message)); }
 }
@@ -35,7 +35,17 @@ function ok(cond, message) { if (!cond) throw new Error(message || "assertion fa
 function eq(a, b, message) { if (a !== b) throw new Error((message || "not equal") + `: got ${JSON.stringify(a)}, expected ${JSON.stringify(b)}`); }
 
 const sentEmails = [];
-global.fetch = async (url, opts) => { sentEmails.push(JSON.parse(opts.body)); return { ok: true, status: 200 }; };
+const tgCalls = [];
+process.env.TELEGRAM_BOT_TOKEN = "123:test-token";
+process.env.TELEGRAM_WEBHOOK_SECRET = "s3cret-webhook";
+global.fetch = async (url, opts) => {
+    if (String(url).startsWith("https://api.telegram.org/bot123:test-token/")) {
+        tgCalls.push({ method: String(url).split("/").pop(), payload: JSON.parse(opts.body) });
+        return { ok: true, status: 200, json: async () => ({ ok: true }) };
+    }
+    sentEmails.push(JSON.parse(opts.body));
+    return { ok: true, status: 200 };
+};
 
 let ipCounter = 0;
 async function call(handlerFile, { method = "POST", body, token, ip = "1.1.1.1", query } = {}) {
@@ -399,6 +409,154 @@ const ADMIN = "admin1|admin@nunsa.org";
         ok(![...store.keys()].some(k => k.startsWith("applications/") || k.startsWith("candidates/")), "applications/candidates left behind");
         const log = [...store.entries()].filter(([k]) => k.startsWith("auditLogs/")).map(([, v]) => v).find(l => l.action === "election_deleted");
         eq(log.applicationsRemoved, 2);
+    });
+
+    console.log("\n== Telegram bot ==");
+    let upd = 1000, msgId = 1;
+    const botCall = (update, secret = "s3cret-webhook") => fn("telegram-bot.js").handler({
+        httpMethod: "POST", headers: { "x-telegram-bot-api-secret-token": secret }, body: JSON.stringify(update)
+    });
+    const privateChat = id => ({ id, type: "private" });
+    const say = async (chat, text, extra = {}) => { const id = ++msgId; await botCall({ update_id: ++upd, message: { message_id: id, chat: privateChat(chat), text, ...extra } }); return id; };
+    const press = (chat, data) => botCall({ update_id: ++upd, callback_query: { id: "cb" + upd, data, message: { message_id: ++msgId, chat: privateChat(chat) } } });
+    const sentTexts = () => tgCalls.filter(c => c.method === "sendMessage").map(c => c.payload.text);
+    const lastSent = () => tgCalls.filter(c => c.method === "sendMessage").slice(-1)[0];
+    const lastText = () => (lastSent() || { payload: { text: "" } }).payload.text;
+    const buttonsOfLast = () => ((lastSent() || { payload: {} }).payload.reply_markup || { inline_keyboard: [] }).inline_keyboard.flat().map(b => ({ text: b.text, data: b.callback_data }));
+    const logIn = async (chat, matric = MATRIC, pin = PIN) => { await say(chat, "/login"); await say(chat, matric); return say(chat, pin); };
+    const CHAT = 5001;
+
+    await test("bot: requests without the webhook secret are rejected and do nothing", async () => {
+        const update = { update_id: 1, message: { message_id: 1, chat: privateChat(CHAT), text: "/start" } };
+        eq((await botCall(update, "wrong")).statusCode, 401);
+        eq((await botCall(update, "")).statusCode, 401);
+        eq(tgCalls.length, 0, "bot answered an unauthenticated request");
+    });
+    await test("bot: group chats are ignored (only a privacy notice for commands)", async () => {
+        await botCall({ update_id: 2, message: { message_id: 1, chat: { id: -100, type: "group" }, text: "/login" } });
+        ok(!store.has("telegramSessions/-100"), "session created for a group");
+        ok(lastText().includes("privately"));
+    });
+    await test("bot: login deletes the PIN message, never stores or echoes the PIN, and links the chat", async () => {
+        seedStudent({ withAccount: true });
+        const pinMessage = await logIn(CHAT);
+        ok(lastText().startsWith("Logged in"), "not logged in: " + lastText());
+        ok(tgCalls.some(c => c.method === "deleteMessage" && c.payload.message_id === pinMessage), "PIN message not deleted");
+        ok(!sentTexts().some(t => t.includes(PIN)), "PIN echoed back");
+        ok(![...store.entries()].some(([k, v]) => k.startsWith("telegram") && JSON.stringify(v).includes(`"${PIN}"`)), "PIN stored");
+        ok(store.get("telegramLinks/" + DOC_ID).chatId === String(CHAT));
+    });
+    await test("bot: wrong PIN is refused, the lockout applies, nothing is linked", async () => {
+        seedStudent({ withAccount: true });
+        for (let i = 0; i < 5; i++) await logIn(CHAT, MATRIC, "0000");
+        ok(!store.has("telegramLinks/" + DOC_ID), "linked after wrong PINs");
+        await logIn(CHAT, MATRIC, PIN);
+        ok(/too many|try again|wait|locked/i.test(lastText()), "lockout not applied to the bot: " + lastText());
+    });
+    await test("bot: commands need a login; /logout unlinks", async () => {
+        seedStudent({ withAccount: true });
+        for (const command of ["/vote", "/elections", "/apply", "/results", "/myvote", "/mystatus", "/candidates"]) {
+            await say(CHAT, command);
+            ok(lastText().includes("/login"), command + " worked without login");
+        }
+        await logIn(CHAT); await say(CHAT, "/elections");
+        ok(!lastText().includes("/login"));
+        await say(CHAT, "/logout"); await say(CHAT, "/elections");
+        ok(lastText().includes("/login"), "still logged in after /logout"); ok(!store.has("telegramLinks/" + DOC_ID));
+    });
+    await test("bot: a student can be logged in on only ONE chat; the newer login wins; links expire after 12 hours", async () => {
+        seedStudent({ withAccount: true });
+        await logIn(CHAT); await logIn(CHAT + 1);
+        await say(CHAT, "/elections"); ok(lastText().includes("/login"), "old chat still logged in");
+        await say(CHAT + 1, "/elections"); ok(!lastText().includes("/login"));
+        const session = store.get("telegramSessions/" + (CHAT + 1));
+        store.set("telegramSessions/" + (CHAT + 1), { ...session, link: { ...session.link, expiresAt: Date.now() - 1 } });
+        await say(CHAT + 1, "/elections"); ok(lastText().includes("/login"), "expired link still worked");
+    });
+    await test("bot: signup by chat works end to end (e-mail code, PIN twice) and mismatched PINs restart", async () => {
+        seedStudent({ email: "" });
+        await say(CHAT, "/signup"); await say(CHAT, MATRIC); await say(CHAT, "me@gmail.com");
+        eq(sentEmails.length, 1); eq(sentEmails[0].to[0], "me@gmail.com");
+        const code = store.get("emailVerifications/" + DOC_ID).code; ok(/^\d{6}$/.test(code));
+        await say(CHAT, "123456"); ok(!lastText().startsWith("E-mail verified"), "wrong code accepted");
+        await say(CHAT, code); ok(lastText().startsWith("E-mail verified"), lastText());
+        await say(CHAT, "4821"); await say(CHAT, "9999"); ok(lastText().includes("did not match"));
+        await say(CHAT, "4821"); await say(CHAT, "4821"); ok(lastText().includes("/login"), lastText());
+        ok(store.has("studentAccounts/" + DOC_ID), "account not created");
+        await logIn(CHAT); ok(lastText().startsWith("Logged in"));
+    });
+    await test("bot: /forgotpin resets the PIN with the e-mailed code; the old PIN stops working", async () => {
+        seedStudent({ withAccount: true });
+        await say(CHAT, "/forgotpin"); await say(CHAT, MATRIC);
+        const code = store.get("pinResetCodes/" + DOC_ID).code;
+        await say(CHAT, code); ok(lastText().includes("Code accepted"), lastText());
+        await say(CHAT, "7777"); await say(CHAT, "7777"); ok(lastText().includes("PIN was changed"), lastText());
+        await logIn(CHAT, MATRIC, PIN); ok(!lastText().startsWith("Logged in"), "old PIN still works");
+        await logIn(CHAT + 9, MATRIC, "7777"); ok(lastText().startsWith("Logged in"), "new PIN does not work: " + lastText());
+    });
+    await test("bot: full vote by buttons; PIN deleted; vote stored anonymously; no second vote; stale buttons do nothing", async () => {
+        seedStudent({ withAccount: true }); seedElection(); seedVoter(MATRIC);
+        await logIn(CHAT);
+        await say(CHAT, "/vote");
+        ok(lastText().includes("President"), lastText());
+        eq(buttonsOfLast().filter(b => b.data.startsWith("bp:")).length, 2);
+        await press(CHAT, "bp:0:0");                       // President -> c1
+        ok(lastText().includes("Secretary"));
+        await press(CHAT, "bp:0:1");                       // stale (wrong position index)
+        ok(lastText().includes("expired"), "stale button accepted");
+        await press(CHAT, "bp:1:1");                       // Secretary -> c4
+        ok(lastText().includes("Your choices") && lastText().includes("President: Ada") && lastText().includes("Secretary: Dayo"), lastText());
+        await press(CHAT, "bc"); ok(lastText().includes("4-digit PIN"));
+        await say(CHAT, "0000"); ok(!store.has("votes/E1_FUD21001"), "voted with a wrong PIN");
+        const pinMessage = await say(CHAT, PIN);
+        ok(lastText().includes("Receipt code: NUNSA-"), lastText());
+        ok(tgCalls.some(c => c.method === "deleteMessage" && c.payload.message_id === pinMessage), "vote PIN not deleted");
+        const vote = store.get("votes/E1_FUD21001"); ok(vote && !("selections" in vote), "turnout record wrong");
+        const ballots = [...store.entries()].filter(([k]) => k.startsWith("ballots/")).map(([, v]) => v);
+        eq(ballots.length, 1); eq(ballots[0].selections.map(x => x.candidateId).sort().join(), "c1,c4");
+        ok(!sentTexts().some(t => t.includes(PIN)), "PIN echoed");
+        await say(CHAT, "/vote"); ok(lastText().includes("no election open"), lastText());
+        await say(CHAT, "/myvote"); ok(lastText().includes("you have voted") && lastText().includes("NUNSA-"));
+    });
+    await test("bot: you cannot vote if you are not on the voter list, and /cancel abandons a ballot", async () => {
+        seedStudent({ withAccount: true }); seedElection();
+        await logIn(CHAT); await say(CHAT, "/vote"); ok(lastText().includes("no election open"), lastText());
+        seedVoter(MATRIC); await say(CHAT, "/vote"); await press(CHAT, "bx");
+        ok(lastText().includes("nothing was recorded") || lastText().includes("Nothing was recorded"));
+        await press(CHAT, "bp:0:0"); ok(lastText().includes("expired"), "button worked after cancel");
+        ok(![...store.keys()].some(k => k.startsWith("votes/")));
+    });
+    await test("bot: apply by buttons creates the application and candidate; /mystatus follows disqualification", async () => {
+        seedAdmins(); seedStudent({ withAccount: true }); draftElection();
+        await logIn(CHAT); await say(CHAT, "/apply");
+        ok(lastText().includes("NUNSA 2026"), lastText());
+        const buttons = buttonsOfLast(); ok(buttons.some(b => b.text === "President") && buttons.some(b => b.text === "Secretary"));
+        await press(CHAT, "ap:0"); ok(lastText().includes("Apply for"), lastText());
+        await press(CHAT, "apy"); ok(lastText().includes("You have applied"), lastText());
+        ok(store.get("applications/F1_" + DOC_ID).status === "applied" && store.has("candidates/form_F1_" + DOC_ID));
+        await say(CHAT, "/apply"); ok(lastText().includes("already applied"), lastText());
+        await call("review-application.js", { token: ADMIN, body: { applicationId: "F1_" + DOC_ID, action: "disqualify", reason: "Not 300 level" } });
+        await say(CHAT, "/mystatus"); ok(lastText().includes("disqualified") && lastText().includes("Not 300 level"), lastText());
+        await press(CHAT, "apy"); ok(lastText().includes("expired"), "stale apply button worked");
+    });
+    await test("bot: results appear only for ended elections", async () => {
+        seedStudent({ withAccount: true }); seedElection({ id: "E7" }); // own id: results are cached 10 s per election
+        await logIn(CHAT); await say(CHAT, "/results"); ok(lastText().includes("No election has finished"), lastText());
+        store.set("elections/E7", { ...store.get("elections/E7"), startAt: Timestamp.fromMillis(Date.now() - 7200e3), endAt: Timestamp.fromMillis(Date.now() - 3600e3) });
+        store.set("ballots/b1", { electionId: "E7", selections: [{ position: "President", candidateId: "c1" }, { position: "Secretary", candidateId: "c3" }] });
+        store.set("ballots/b2", { electionId: "E7", selections: [{ position: "President", candidateId: "c1" }, { position: "Secretary", candidateId: "c4" }] });
+        store.set("votes/E7_A", { electionId: "E7", matricNumber: "A/1", authUid: "a" });
+        store.set("votes/E7_B", { electionId: "E7", matricNumber: "B/1", authUid: "b" });
+        await say(CHAT, "/results");
+        ok(lastText().includes("President") && lastText().includes("Ada: 2 (100%)"), lastText());
+        ok(!lastText().includes("FUD") && !lastText().includes("A/1"), "voter data in results");
+    });
+    await test("bot: a repeated Telegram update is processed once; unknown text and commands get a hint", async () => {
+        const update = { update_id: 777, message: { message_id: 9, chat: privateChat(CHAT), text: "/help" } };
+        await botCall(update); const first = sentTexts().length; await botCall(update);
+        eq(sentTexts().length, first, "same update answered twice");
+        await say(CHAT, "hello there"); ok(lastText().includes("/help"));
+        await say(CHAT, "/nonsense"); ok(lastText().includes("do not know"));
     });
 
     console.log("\n== Admin invitation expiry ==");

@@ -56,4 +56,20 @@ async function authenticateStudent(db, event) {
     };
 }
 
-module.exports = { matricDocumentId, applicationId, authenticateStudent };
+/** Same student object authenticateStudent builds, but from a student document id (used by the Telegram bot). */
+async function loadStudentByDocId(db, studentDocumentId) {
+    const accountSnap = await db.collection("studentAccounts").doc(studentDocumentId).get();
+    const account = accountSnap.exists ? accountSnap.data() : null;
+    if (!account || account.active === false || !account.authUid) return null;
+    const studentSnap = await db.collection("students").doc(studentDocumentId).get();
+    const record = studentSnap.exists ? studentSnap.data() : {};
+    return {
+        uid: account.authUid,
+        studentDocumentId,
+        matricNumber: String(account.matricNumber || record.matricNumber || ""),
+        name: String(record.name || ""),
+        profilePicture: record.profilePicture || "assets/default-profile.jpg"
+    };
+}
+
+module.exports = { matricDocumentId, applicationId, authenticateStudent, loadStudentByDocId };

@@ -81,9 +81,10 @@ function applyWrite(w) {
 }
 
 class Query {
-    constructor(colPath, filters, limitN) { this.colPath = colPath; this.filters = filters || []; this.limitN = limitN; }
-    where(field, op, value) { return new Query(this.colPath, this.filters.concat([[field, op, value]]), this.limitN); }
-    limit(n) { return new Query(this.colPath, this.filters, n); }
+    constructor(colPath, filters, limitN, order) { this.colPath = colPath; this.filters = filters || []; this.limitN = limitN; this.order = order; }
+    where(field, op, value) { return new Query(this.colPath, this.filters.concat([[field, op, value]]), this.limitN, this.order); }
+    limit(n) { return new Query(this.colPath, this.filters, n, this.order); }
+    orderBy(field, dir) { return new Query(this.colPath, this.filters, this.limitN, [field, dir || "asc"]); }
     _docs() {
         const prefix = this.colPath + "/";
         let out = [];
@@ -98,6 +99,11 @@ class Query {
             });
             if (ok) out.push(new DocSnap(new DocRef(path), data));
         }
+        if (this.order) {
+            const [field, dir] = this.order;
+            const key = snap => { const v = snap._d[field]; return v instanceof Timestamp ? v.toMillis() : (v === undefined ? 0 : v); };
+            out.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * (dir === "desc" ? -1 : 1));
+        }
         if (this.limitN) out = out.slice(0, this.limitN);
         return out;
     }
@@ -106,7 +112,7 @@ class Query {
 }
 
 class CollectionRef extends Query {
-    constructor(path) { super(path, [], undefined); this.path = path; }
+    constructor(path) { super(path, [], undefined, undefined); this.path = path; }
     doc(id) { return new DocRef(this.path + "/" + (id || randomId())); }
 }
 
