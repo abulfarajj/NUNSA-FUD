@@ -130,6 +130,10 @@ function buildPositions(candidatesSnap, counts) {
     return positions;
 }
 
+/*
+ * HTTP entry point: checks the Firebase ID token, then serves results.
+ * The Telegram bot calls getResults() directly (it has authenticated the student itself).
+ */
 exports.handler = async function (event) {
     if (event.httpMethod !== "GET") {
         return fail(405, "Method not allowed.");
@@ -144,7 +148,18 @@ exports.handler = async function (event) {
         if (!decodedToken || !decodedToken.uid) {
             return fail(401, "Invalid authentication token.");
         }
+        return await getResults(event);
+    } catch (error) {
+        if (error && (error.code === "auth/id-token-expired" || error.code === "auth/argument-error")) {
+            return fail(401, "Your session has expired. Please log in again.");
+        }
+        logError("Get election results error", error);
+        return fail(500, "Unable to load results.");
+    }
+};
 
+async function getResults(event) {
+    try {
         const electionId = String(event.queryStringParameters?.id || "").trim();
         if (!electionId || electionId.includes("/")) {
             return fail(400, "Election ID is required.");
@@ -238,4 +253,6 @@ exports.handler = async function (event) {
         logError("Get election results error", error);
         return fail(500, "Unable to load election results.");
     }
-};
+}
+
+exports.getResults = getResults;

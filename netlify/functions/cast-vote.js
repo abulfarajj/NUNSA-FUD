@@ -74,13 +74,18 @@ function toDate(value) {
 
 const fail = (status, message) => jsonResponse(status, { success: false, message });
 
+/*
+ * The HTTP entry point: checks the Firebase ID token, then runs the shared
+ * voting logic. The Telegram bot calls castVote() directly with the uid of the
+ * student it has already authenticated (matric + PIN), so every check below
+ * (identity, PIN re-check, lockout, eligibility, one-vote rule) applies to it too.
+ */
 exports.handler = async function (event) {
     if (event.httpMethod !== "POST") {
         return fail(405, "Method not allowed.");
     }
 
     try {
-        /* ---- 1. Authentication ---- */
         const authHeader = event.headers.authorization || event.headers.Authorization || "";
         if (!authHeader.startsWith("Bearer ")) {
             return fail(401, "Authentication required.");
@@ -89,6 +94,19 @@ exports.handler = async function (event) {
         if (!decodedToken || !decodedToken.uid) {
             return fail(401, "Invalid authentication token.");
         }
+        return await castVote(event, decodedToken);
+    } catch (error) {
+        if (error && (error.code === "auth/id-token-expired" || error.code === "auth/argument-error")) {
+            return fail(401, "Your session has expired. Please log in again.");
+        }
+        logError("Cast vote error", error);
+        return fail(500, "Unable to record your vote.");
+    }
+};
+
+async function castVote(event, decodedToken) {
+    try {
+        /* ---- 1. Authentication: done by the caller (HTTP token check, or the bot's own login) ---- */
 
         const body = parseBody(event);
         if (!body) {
@@ -322,4 +340,6 @@ exports.handler = async function (event) {
         logError("Cast vote error", error);
         return fail(500, "Unable to record your vote.");
     }
-};
+}
+
+exports.castVote = castVote;

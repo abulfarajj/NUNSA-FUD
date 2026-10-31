@@ -29,6 +29,67 @@ const db = admin.firestore();
 const { jsonResponse, parseBody, logError } = guard;
 const fail = (status, message) => jsonResponse(status, { success: false, message });
 
+/**
+ * Record the application and the candidate entry in one transaction.
+ * Returns { error: [status, message] } or { ok: true, position }.
+ * Shared with the Telegram bot (which has already authenticated the student).
+ */
+async function applyForStudent(student, electionId, positionId) {
+    const appId = forms.applicationId(electionId, student.studentDocumentId);
+    const appRef = db.collection("applications").doc(appId);
+    const electionRef = db.collection("elections").doc(electionId);
+    const positionRef = db.collection("formPositions").doc(positionId);
+    const candidateRef = db.collection("candidates").doc("form_" + appId);
+
+    const outcome = await db.runTransaction(async tx => {
+        const [electionSnap, positionSnap, existing] = await Promise.all([
+            tx.get(electionRef), tx.get(positionRef), tx.get(appRef)
+        ]);
+
+        const election = electionSnap.exists ? electionSnap.data() : null;
+        if (!election || election.status !== "draft" || election.formsOpen !== true) {
+            return { error: [403, "Applications are not open for this election."] };
+        }
+        const position = positionSnap.exists ? positionSnap.data() : null;
+        if (!position || position.electionId !== electionId || position.active !== true) {
+            return { error: [404, "This position is not available."] };
+        }
+        if (existing.exists) {
+            return { error: [409, "You have already applied in this election."] };
+        }
+
+        tx.create(appRef, {
+            electionId,
+            positionId,
+            position: String(position.position),
+            studentDocumentId: student.studentDocumentId,
+            matricNumber: student.matricNumber,
+            studentName: student.name,
+            profilePicture: student.profilePicture,
+            authUid: student.uid,
+            status: "applied",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            candidateId: candidateRef.id
+        });
+        tx.create(candidateRef, {
+            electionId,
+            matricNumber: student.matricNumber,
+            name: student.name,
+            profilePicture: student.profilePicture,
+            position: String(position.position),
+            status: "active",
+            voteCount: 0,
+            source: "application",
+            applicationId: appId,
+            createdBy: "system",
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return { ok: true, position: String(position.position) };
+    });
+    return outcome;
+}
+
 exports.handler = async function (event) {
     if (event.httpMethod !== "POST") return fail(405, "Method not allowed.");
 
@@ -48,58 +109,7 @@ exports.handler = async function (event) {
             return fail(400, "Choose a position.");
         }
 
-        const appId = forms.applicationId(electionId, student.studentDocumentId);
-        const appRef = db.collection("applications").doc(appId);
-        const electionRef = db.collection("elections").doc(electionId);
-        const positionRef = db.collection("formPositions").doc(positionId);
-        const candidateRef = db.collection("candidates").doc("form_" + appId);
-
-        const outcome = await db.runTransaction(async tx => {
-            const [electionSnap, positionSnap, existing] = await Promise.all([
-                tx.get(electionRef), tx.get(positionRef), tx.get(appRef)
-            ]);
-
-            const election = electionSnap.exists ? electionSnap.data() : null;
-            if (!election || election.status !== "draft" || election.formsOpen !== true) {
-                return { error: [403, "Applications are not open for this election."] };
-            }
-            const position = positionSnap.exists ? positionSnap.data() : null;
-            if (!position || position.electionId !== electionId || position.active !== true) {
-                return { error: [404, "This position is not available."] };
-            }
-            if (existing.exists) {
-                return { error: [409, "You have already applied in this election."] };
-            }
-
-            tx.create(appRef, {
-                electionId,
-                positionId,
-                position: String(position.position),
-                studentDocumentId: student.studentDocumentId,
-                matricNumber: student.matricNumber,
-                studentName: student.name,
-                profilePicture: student.profilePicture,
-                authUid: student.uid,
-                status: "applied",
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                candidateId: candidateRef.id
-            });
-            tx.create(candidateRef, {
-                electionId,
-                matricNumber: student.matricNumber,
-                name: student.name,
-                profilePicture: student.profilePicture,
-                position: String(position.position),
-                status: "active",
-                voteCount: 0,
-                source: "application",
-                applicationId: appId,
-                createdBy: "system",
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-            return { ok: true, position: String(position.position) };
-        });
+        const outcome = await applyForStudent(student, electionId, positionId);
 
         if (outcome.error) return fail(outcome.error[0], outcome.error[1]);
         return jsonResponse(200, {
@@ -111,3 +121,5 @@ exports.handler = async function (event) {
         return fail(500, "Unable to submit your application.");
     }
 };
+
+exports.applyForStudent = applyForStudent;
