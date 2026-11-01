@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="#faf9f5" media="(prefers-color-scheme: light)" name="theme-color"/><meta content="#0d1517" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<title>Announcements · Admin</title>
+<link href="style.css" rel="stylesheet"/>
+<link href="theme.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-admin">
+<header class="admin-header editorial-topbar"><div class="admin-header-left brand-lockup"><img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/><div><h1>NUNSA-FUD</h1><p>Announcements</p></div></div><a class="logout-button" id="back" href="admin.html">← Dashboard</a></header>
+<main class="admin-dashboard">
+<section class="dashboard-section">
+<h2 id="form-title">New announcement</h2>
+<form id="form" autocomplete="off" novalidate>
+<label for="title">Title</label><input id="title" type="text" maxlength="120" placeholder="Voting closes Friday 6 pm"/>
+<label for="author">Posted as</label><input id="author" type="text" maxlength="60" list="roles" placeholder="President, Social Director…"/><select id="author-select" hidden></select>
+<datalist id="roles"><option value="President"><option value="Vice President"><option value="General Secretary"><option value="Financial Secretary"><option value="Social Director"><option value="Director of Sports"><option value="PRO"><option value="Electoral Committee"><option value="Admin"></datalist>
+<label for="text">Message</label><textarea id="text" maxlength="4000" placeholder="Write the announcement…"></textarea>
+<label for="mode">Image</label>
+<select id="mode"><option value="none">No image (text only)</option><option value="make">Make an image from my text</option><option value="upload">Upload my own image</option></select>
+<input id="file" type="file" accept="image/*" hidden/>
+<div id="preview-wrap" hidden><img id="preview" alt="Preview" style="width:100%;max-width:360px;border-radius:8px;margin-top:12px"/></div>
+<label id="pin-row" style="display:flex;gap:10px;align-items:center;font-weight:500"><input id="pinned" type="checkbox"/> Pin to the top</label>
+<div class="form-actions"><button class="vote-button" id="save" type="submit">POST ANNOUNCEMENT</button><button class="secondary-btn" id="cancel" type="button" hidden>Cancel edit</button></div>
+<p class="message" id="msg"></p>
+</form>
+</section>
+<section class="dashboard-section"><h2>Posted</h2><div id="list"></div></section>
+</main>
+<script src="admin-announcements.js" type="module"></script>
+</body>
+</html>

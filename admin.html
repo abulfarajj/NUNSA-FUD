@@ -3,10 +3,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta content="#faf9f5" name="theme-color"/>
+<meta content="#faf9f5" media="(prefers-color-scheme: light)" name="theme-color"/><meta content="#0d1517" media="(prefers-color-scheme: dark)" name="theme-color"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>NUNSA-FUD Election Administration</title>
 <link href="style.css" rel="stylesheet"/>
+<link href="theme.css" rel="stylesheet"/>
 </head>
 <body class="nunsa-page page-admin">
 <header class="admin-header editorial-topbar">
@@ -38,6 +39,14 @@
             Election Management
         </h2>
 <div class="dashboard-grid">
+<button class="dashboard-card" id="announcements-btn" type="button"><span class="card-index">★</span>
+<h3>
+                    Announcements
+                </h3>
+<p>
+                    Post notices and share links
+                </p>
+<span class="card-arrow">↗</span></button>
 <button class="dashboard-card" id="elections-btn" type="button"><span class="card-index">01</span>
 <h3>
                     Elections
@@ -109,5 +118,6 @@
 </footer>
 <script src="admin.js" type="module">
 </script>
-<script defer="True" src="motion.js"></script></body>
+<script defer="True" src="motion.js"></script><script>document.getElementById("announcements-btn").addEventListener("click",function(){location.href="admin-announcements.html"});</script>
+</body>
 </html>

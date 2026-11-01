@@ -247,6 +247,7 @@ const HELP = [
     "/vote - cast your vote",
     "/myvote - check whether you have voted",
     "/results - see results of finished elections",
+    "/notices - latest announcements",
     "/logout - log out of this chat",
     "/cancel - stop what you are doing"
 ].join("\n");
@@ -272,7 +273,7 @@ function mainMenuRows(loggedIn) {
             [{ text: "\u{1F5F3} Vote", data: "m:vote" }, { text: "\u{1F465} Candidates", data: "m:candidates" }],
             [{ text: "\u{1F4CA} Results", data: "m:results" }, { text: "\u{1F4C5} Elections", data: "m:elections" }],
             [{ text: "\u{1F4DD} Apply", data: "m:apply" }, { text: "\u{1F4CC} My status", data: "m:mystatus" }],
-            [{ text: "\u2705 My vote", data: "m:myvote" }]
+            [{ text: "\u2705 My vote", data: "m:myvote" }, { text: "\u{1F4E2} Notices", data: "m:notices" }]
         ]
         : [
             [{ text: "\u{1F510} Login", data: "m:login" }, { text: "\u{1F195} Sign up", data: "m:signup" }],
@@ -512,7 +513,7 @@ async function onCommand(chatId, session, command) {
         }
     }
 
-    const known = ["elections", "candidates", "apply", "mystatus", "vote", "myvote", "results"];
+    const known = ["elections", "candidates", "apply", "mystatus", "vote", "myvote", "results", "notices"];
     if (!known.includes(command)) return send(chatId, "I do not know that command. Type /help.");
 
     const link = await currentLink(session, chatId);
@@ -527,11 +528,22 @@ async function onCommand(chatId, session, command) {
         case "mystatus": return showStatus(chatId, student);
         case "vote": return startVote(chatId, session, student);
         case "myvote": return showMyVote(chatId, student);
+        case "notices": return showNotices(chatId);
         case "results": return pickElection(chatId, session, "rs", "Which election's results do you want to see?");
     }
 }
 
 /* ---------------- Information commands ---------------- */
+
+async function showNotices(chatId) {
+    const site = String(process.env.SITE_URL || "https://nunsafud.name.ng").replace(/\/+$/, "");
+    const snap = await db.collection("announcements").orderBy("createdAt", "desc").limit(20).get();
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.pinned === true) - (a.pinned === true)).slice(0, 5);
+    if (!items.length) return send(chatId, "No announcements yet.", BACK_ROW);
+    const lines = items.map(a => (a.pinned ? "\u{1F4CC} " : "\u2022 ") + String(a.title || "").slice(0, 120) + " (" + String(a.authorName || "") + ")\n" + site + "/a/" + a.id);
+    return send(chatId, "Latest announcements:\n\n" + lines.join("\n\n"), BACK_ROW);
+}
 
 async function showElections(chatId, student) {
     const lines = [];

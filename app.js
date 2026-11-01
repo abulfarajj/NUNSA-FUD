@@ -345,7 +345,7 @@ async function openStudentDashboard(result) {
         result.profilePicture || ""
     );
 
-    window.location.href = "student-dashboard.html";
+    window.location.href = (function(d){try{var n=localStorage.getItem("nunsaNext");if(n&&/^\/(a\/[A-Za-z0-9_-]+|announcements\.html(\?id=[A-Za-z0-9_-]+)?)$/.test(n)){localStorage.removeItem("nunsaNext");return n;}}catch(e){}return d;})("student-dashboard.html");
 }
 
 loginBtn.addEventListener("click", () => {
