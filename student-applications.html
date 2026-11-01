@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f5f4ef" />
+  <title>Applications · NUNSA-FUD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="style.css" rel="stylesheet" />
+  <link href="theme.css" rel="stylesheet" />
+  <link href="redesign.css" rel="stylesheet" />
+</head>
+<body class="nunsa-page student-app student-subpage page-student-applications">
+  <header class="student-header editorial-topbar">
+    <div class="student-identity">
+      <img id="student-profile-picture" class="student-avatar" src="assets/default-profile.jpg" alt="Student profile picture" />
+      <div class="student-identity-copy">
+        <p class="greeting">Hi, <strong id="student-name">Student</strong></p>
+        <p class="student-meta"><span id="profile-matric">Loading registration number…</span><span aria-hidden="true">·</span><span id="student-level">Level not set</span></p>
+      </div>
+    </div>
+    <div class="student-header-actions">
+      <a class="header-icon-link" href="announcements.html" aria-label="Notifications and announcements" title="Notifications and announcements">♧</a>
+      <button class="header-icon-button" id="menu-toggle" type="button" aria-label="Open navigation menu" aria-expanded="false">☰</button>
+    </div>
+    <div class="student-menu" id="student-menu" hidden>
+      <a href="student-dashboard.html">Home</a>
+      <a href="voter-portal.html">Elections</a>
+      <a href="student-applications.html" aria-current="page">Applications</a>
+      <a href="announcements.html">Announcements</a>
+      <a href="student-profile.html">My profile</a>
+      <div class="menu-divider"></div>
+      <label for="theme-choice">Appearance</label>
+      <select id="theme-choice" aria-label="Choose appearance"><option value="system">Use device setting</option><option value="light">Light</option><option value="dark">Dark</option></select>
+      <button id="student-logout-btn" class="menu-logout" type="button">Log out</button>
+    </div>
+  </header>
+  <main class="student-subpage-main">
+    <section class="page-intro">
+      <p class="eyebrow">CANDIDATE APPLICATIONS</p>
+      <h1>Run for a position</h1>
+      <p class="intro-copy">Choose an available position and submit your mandate. You can apply for one position in each election.</p>
+    </section>
+    <section class="applications-block">
+      <div class="section-heading"><div><p class="eyebrow">OPEN OPPORTUNITIES</p><h2>Available positions</h2></div></div>
+      <div id="application-offers"><p class="empty-note">Loading available positions…</p></div>
+    </section>
+    <section class="applications-block">
+      <div class="section-heading"><div><p class="eyebrow">YOUR SUBMISSIONS</p><h2>My applications</h2></div></div>
+      <div id="applications-list"><p class="empty-note">Loading your applications…</p></div>
+    </section>
+    <p id="applications-feedback" class="inline-message" aria-live="polite"></p>
+    <p id="student-page-message" class="inline-message" role="status"></p>
+  </main>
+  <dialog id="mandate-dialog" class="mandate-dialog">
+    <form method="dialog" id="mandate-form">
+      <p class="eyebrow">CANDIDATE APPLICATION</p>
+      <h2 id="mandate-position-title">Apply for a position</h2>
+      <p class="intro-copy">Write the mandate you want students to read when they view your candidate profile.</p>
+      <label for="candidate-mandate">Your mandate</label>
+      <textarea id="candidate-mandate" maxlength="4000" rows="8" required placeholder="Explain your priorities, plans, and what you intend to deliver if elected."></textarea>
+      <small id="mandate-count">0 / 4000</small>
+      <div class="mandate-dialog-actions">
+        <button type="button" class="secondary-btn" id="cancel-mandate">Cancel</button>
+        <button type="submit" class="vote-button" id="submit-application">Submit application</button>
+      </div>
+    </form>
+  </dialog>
+  <footer class="site-footer"><p>NUNSA-FUD Electronic Voting System</p></footer>
+  <script src="student-applications.js" type="module"></script>
+  <script src="theme.js" type="module"></script>
+  <script src="student-nav.js" type="module"></script>
+</body>
+</html>

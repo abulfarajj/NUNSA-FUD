@@ -60,6 +60,8 @@ const studentName =
 
 const candidatePosition =
     document.getElementById("candidatePosition");
+const candidateMandate =
+    document.getElementById("candidateMandate");
 
 const addCandidateBtn =
     document.getElementById("addCandidateBtn");
@@ -734,6 +736,9 @@ async function addCandidate() {
                 position:
                     position,
 
+                mandate:
+                    candidateMandate?.value.trim().slice(0, 4000) || "",
+
                 status:
                     "active",
 
@@ -764,6 +769,7 @@ async function addCandidate() {
             candidatePosition.value =
                 "";
         }
+        if (candidateMandate) candidateMandate.value = "";
 
         clearStudentSelection();
 

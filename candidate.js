@@ -16,6 +16,6 @@ const root = document.getElementById("candidate-profile");
     const img = el("img", "candidate-profile-photo"); img.src = c.profilePicture || "assets/default-profile.jpg"; img.alt = `${c.name} profile picture`; img.onerror = () => { img.src = "assets/default-profile.jpg"; };
     const intro = el("section", "candidate-profile-intro"); intro.append(el("p", "eyebrow", data.election.title || "NUNSA-FUD ELECTION"), img, el("h1", "", c.name), el("p", "candidate-profile-position", c.position)); root.append(intro);
     const bio = el("section", "candidate-profile-section"); bio.append(el("h2", "", "About the candidate"), el("p", "", c.biography || "No biography has been provided.")); root.append(bio);
-    const manifesto = el("section", "candidate-profile-section"); manifesto.append(el("h2", "", "Manifesto"), el("p", "candidate-manifesto", c.manifesto || "This candidate has not published a manifesto yet.")); root.append(manifesto);
+    const mandate = el("section", "candidate-profile-section candidate-mandate-section"); mandate.append(el("p", "eyebrow", "CANDIDATE STATEMENT"), el("h2", "", "Mandate"), el("p", "candidate-manifesto", c.mandate || c.manifesto || "This candidate has not published a mandate yet.")); root.append(mandate);
   } catch (error) { root.replaceChildren(el("p", "message error", error.message || "Unable to load candidate profile.")); }
 })();

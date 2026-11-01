@@ -17,7 +17,7 @@ function render(data) {
     candidates.forEach(c => {
       const row = el("a", "candidate-directory-row"); row.href = `candidate.html?electionId=${encodeURIComponent(data.election.id)}&id=${encodeURIComponent(c.id)}`;
       const img = el("img"); img.src = c.profilePicture || "assets/default-profile.jpg"; img.alt = ""; img.onerror = () => { img.src = "assets/default-profile.jpg"; };
-      const info = el("div", ""); info.append(el("strong", "", c.name), el("small", "", c.biography || "View candidate profile and manifesto."));
+      const info = el("div", ""); info.append(el("strong", "", c.name), el("small", "", c.biography || "Open candidate profile and read mandate."));
       row.append(img, info, el("span", "candidate-arrow", "→")); list.append(row);
     });
     section.append(list); groups.append(section);

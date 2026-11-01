@@ -56,6 +56,7 @@ exports.handler = async event => {
                 position: clean(d.position, 80) || "General",
                 profilePicture: clean(d.profilePicture || d.image, 800) || "assets/default-profile.jpg",
                 biography: clean(d.biography || d.bio, 1200),
+                mandate: clean(d.mandate || d.manifesto, 4000),
                 manifesto: clean(d.manifesto, 4000),
                 status: d.status === "disqualified" ? "disqualified" : "active"
             };

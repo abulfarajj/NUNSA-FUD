@@ -210,7 +210,7 @@ async function init() {
     stage = 0; overview = { totalPositions: applicationOffer.positions.length, totalCandidates: 0, candidates: [] };
   }
   if (election) {
-    const actionHref = stage === 0 ? "student-dashboard.html#forms-section" : stage === 3 ? `results.html?id=${encodeURIComponent(election.id)}` : `voter-portal.html`;
+    const actionHref = stage === 0 ? "student-applications.html" : stage === 3 ? `results.html?id=${encodeURIComponent(election.id)}` : `voter-portal.html`;
     const actionText = stage === 0 ? "APPLY FOR A POSITION" : stage === 3 ? "VIEW RESULTS" : stage === 2 ? "VOTE NOW" : "VIEW ELECTION";
     renderElection(election, overview, stage, actionHref, actionText);
     const labels = stage === 0 ? ["Open", "Next", "Upcoming", "Upcoming"] : stage === 1 ? ["Completed", "Completed", dateLabel(election.startAt), dateLabel(election.endAt)] : stage === 2 ? ["Completed", "Completed", `${dateLabel(election.startAt)} – ${dateLabel(election.endAt)}`, "Upcoming"] : ["Completed", "Completed", "Completed", dateLabel(election.endAt)];

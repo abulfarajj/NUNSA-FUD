@@ -34,7 +34,7 @@ const fail = (status, message) => jsonResponse(status, { success: false, message
  * Returns { error: [status, message] } or { ok: true, position }.
  * Shared with the Telegram bot (which has already authenticated the student).
  */
-async function applyForStudent(student, electionId, positionId) {
+async function applyForStudent(student, electionId, positionId, mandate = "") {
     const appId = forms.applicationId(electionId, student.studentDocumentId);
     const appRef = db.collection("applications").doc(appId);
     const electionRef = db.collection("elections").doc(electionId);
@@ -70,7 +70,8 @@ async function applyForStudent(student, electionId, positionId) {
             status: "applied",
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            candidateId: candidateRef.id
+            candidateId: candidateRef.id,
+            mandate: String(mandate || "").trim().slice(0, 4000)
         });
         tx.create(candidateRef, {
             electionId,
@@ -78,6 +79,7 @@ async function applyForStudent(student, electionId, positionId) {
             name: student.name,
             profilePicture: student.profilePicture,
             position: String(position.position),
+            mandate: String(mandate || "").trim().slice(0, 4000),
             status: "active",
             voteCount: 0,
             source: "application",
@@ -105,11 +107,13 @@ exports.handler = async function (event) {
         if (!body) return fail(400, "Invalid request.");
         const electionId = String(body.electionId || "").trim();
         const positionId = String(body.positionId || "").trim();
+        const mandate = String(body.mandate || "").trim();
+        if (mandate.length > 4000) return fail(400, "Your mandate cannot exceed 4,000 characters.");
         if (!electionId || electionId.includes("/") || !positionId || positionId.includes("/")) {
             return fail(400, "Choose a position.");
         }
 
-        const outcome = await applyForStudent(student, electionId, positionId);
+        const outcome = await applyForStudent(student, electionId, positionId, mandate);
 
         if (outcome.error) return fail(outcome.error[0], outcome.error[1]);
         return jsonResponse(200, {
