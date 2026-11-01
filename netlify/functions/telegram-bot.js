@@ -98,7 +98,9 @@ async function send(chatId, text, rows) {
         const payload = { chat_id: chatId, text: parts[i], disable_web_page_preview: true };
         if (rows && i === parts.length - 1) {
             payload.reply_markup = {
-                inline_keyboard: rows.map(row => row.map(button => ({ text: button.text, callback_data: button.data })))
+                inline_keyboard: rows.map(row => row.map(button => (button.url
+                    ? { text: button.text, url: button.url }
+                    : { text: button.text, callback_data: button.data })))
             };
         }
         await tg("sendMessage", payload);
@@ -230,6 +232,7 @@ async function loadCandidates(electionId) {
 }
 
 const LOGIN_HINT = "Please log in first with /login.";
+const LOGIN_ROWS = [[{ text: "\u{1F510} Login", data: "m:login" }, { text: "\u{1F195} Sign up", data: "m:signup" }]];
 
 const HELP = [
     "NUNSA-FUD voting bot. Commands:",
@@ -247,6 +250,40 @@ const HELP = [
     "/logout - log out of this chat",
     "/cancel - stop what you are doing"
 ].join("\n");
+
+/* ---------------- Tap-through menu ---------------- */
+
+/**
+ * The voting Mini App (the website opened inside Telegram). This is the direct link made in
+ * BotFather with /newapp. Override with the Netlify env var TELEGRAM_APP_LINK if it ever changes.
+ */
+const DEFAULT_APP_LINK = "https://t.me/nunsafud_bot/voting_app";
+
+function appLink() {
+    const link = String(process.env.TELEGRAM_APP_LINK || DEFAULT_APP_LINK).trim();
+    return link.startsWith("https://t.me/") ? link : DEFAULT_APP_LINK;
+}
+
+const BACK_ROW = [[{ text: "\u{1F3E0} Menu", data: "m:menu" }]];
+
+function mainMenuRows(loggedIn) {
+    const rows = loggedIn
+        ? [
+            [{ text: "\u{1F5F3} Vote", data: "m:vote" }, { text: "\u{1F465} Candidates", data: "m:candidates" }],
+            [{ text: "\u{1F4CA} Results", data: "m:results" }, { text: "\u{1F4C5} Elections", data: "m:elections" }],
+            [{ text: "\u{1F4DD} Apply", data: "m:apply" }, { text: "\u{1F4CC} My status", data: "m:mystatus" }],
+            [{ text: "\u2705 My vote", data: "m:myvote" }]
+        ]
+        : [
+            [{ text: "\u{1F510} Login", data: "m:login" }, { text: "\u{1F195} Sign up", data: "m:signup" }],
+            [{ text: "\u{1F511} Forgot PIN", data: "m:forgotpin" }]
+        ];
+    const last = [];
+    last.push({ text: "\u{1F4F1} Open app", url: appLink() });
+    if (loggedIn) last.push({ text: "\u{1F6AA} Log out", data: "m:logout" });
+    if (last.length) rows.push(last);
+    return rows;
+}
 
 /* ---------------- Entry point ---------------- */
 
@@ -348,7 +385,7 @@ async function onText(chatId, session, text, messageId) {
             };
             // A student can be logged in on ONE Telegram chat only: this replaces any older link.
             await linkRef(studentDocumentId).set({ chatId: String(chatId), linkedAt: Date.now() });
-            return send(chatId, "Logged in. You stay logged in on this chat for 12 hours.\nType /help to see what you can do.");
+            return send(chatId, "Logged in. You stay logged in on this chat for 12 hours.\nWhat would you like to do?", mainMenuRows(true));
         }
 
         case "signup_matric":
@@ -396,7 +433,7 @@ async function onText(chatId, session, text, messageId) {
             setStep(session, "idle", {});
             const { http, data } = await callFn(completeSignup, chatId, { matricNumber: matric, email, pin: trimmed });
             if (http !== 200 || !data.success) return send(chatId, (data.message || "Could not create your account.") + "\nUse /signup to try again.");
-            return send(chatId, "Your account is ready. Use /login to log in.");
+            return send(chatId, "Your account is ready. Tap Login to continue.", [[{ text: "\u{1F510} Login", data: "m:login" }]]);
         }
 
         case "reset_matric": {
@@ -431,7 +468,7 @@ async function onText(chatId, session, text, messageId) {
             setStep(session, "idle", {});
             const { http, data } = await callFn(resetPin, chatId, { matricNumber: matric, code, newPin: trimmed });
             if (http !== 200 || !data.success) return send(chatId, (data.message || "Could not reset your PIN.") + "\nUse /forgotpin to try again.");
-            return send(chatId, "Your PIN was changed. Use /login to log in.");
+            return send(chatId, "Your PIN was changed. Tap Login to continue.", [[{ text: "\u{1F510} Login", data: "m:login" }]]);
         }
 
         case "vote_pin": {
@@ -451,9 +488,12 @@ async function onCommand(chatId, session, command) {
 
     switch (command) {
         case "start":
-            return send(chatId, "Welcome to the NUNSA-FUD voting bot.\n\n" + HELP);
+        case "menu": {
+            const loggedIn = !!(await currentLink(session, chatId));
+            return send(chatId, (command === "start" ? "Welcome to the NUNSA-FUD voting bot.\n\n" : "") + "What would you like to do?", mainMenuRows(loggedIn));
+        }
         case "help":
-            return send(chatId, HELP);
+            return send(chatId, HELP + "\n/menu - show the buttons", mainMenuRows(!!(await currentLink(session, chatId))));
         case "cancel":
             return send(chatId, "Cancelled. Type /help to see the commands.");
         case "login":
@@ -476,18 +516,18 @@ async function onCommand(chatId, session, command) {
     if (!known.includes(command)) return send(chatId, "I do not know that command. Type /help.");
 
     const link = await currentLink(session, chatId);
-    if (!link) return send(chatId, LOGIN_HINT);
+    if (!link) return send(chatId, LOGIN_HINT, LOGIN_ROWS);
     const student = await forms.loadStudentByDocId(db, link.studentDocumentId);
-    if (!student) { session.link = null; return send(chatId, LOGIN_HINT); }
+    if (!student) { session.link = null; return send(chatId, LOGIN_HINT, LOGIN_ROWS); }
 
     switch (command) {
         case "elections": return showElections(chatId, student);
-        case "candidates": return showCandidates(chatId);
+        case "candidates": return pickElection(chatId, session, "cl", "Which election's candidates do you want to see?");
         case "apply": return startApply(chatId, session, student);
         case "mystatus": return showStatus(chatId, student);
         case "vote": return startVote(chatId, session, student);
         case "myvote": return showMyVote(chatId, student);
-        case "results": return showResults(chatId);
+        case "results": return pickElection(chatId, session, "rs", "Which election's results do you want to see?");
     }
 }
 
@@ -507,22 +547,37 @@ async function showElections(chatId, student) {
     const { offers } = await loadOffers(student);
     offers.forEach(offer => lines.push(`- ${offer.title || "Election"}: applications are open (/apply)`));
 
-    return send(chatId, lines.length ? "Elections:\n" + lines.join("\n") : "There are no elections right now.");
+    return send(chatId, lines.length ? "Elections:\n" + lines.join("\n") : "There are no elections right now.", BACK_ROW);
 }
 
-async function showCandidates(chatId) {
-    const elections = (await publishedElections()).filter(election => electionState(election) !== "ended");
-    if (!elections.length) return send(chatId, "There is no election with candidates to show right now.");
-    for (const election of elections) {
-        const positions = await loadCandidates(election.id);
-        const lines = [election.title || "Election", ""];
-        if (!positions.length) lines.push("No candidates yet.");
-        positions.forEach(position => {
-            lines.push(position.name + ":");
-            position.cands.forEach(candidate => lines.push("  - " + candidate.name));
-        });
-        await send(chatId, lines.join("\n"));
-    }
+/** Ask which election, like the website does. kind: "cl" (candidates) or "rs" (results). */
+async function pickElection(chatId, session, kind, question) {
+    const elections = (await publishedElections())
+        .sort((a, b) => toMs(b.startAt) - toMs(a.startAt))
+        .slice(0, 10);
+    if (!elections.length) return send(chatId, "There are no elections yet.");
+
+    const list = elections.map(election => ({
+        id: election.id,
+        title: String(election.title || "Election"),
+        state: electionState(election)
+    }));
+    setStep(session, "idle", { pick: { kind, list } });
+    const rows = list.map((election, index) => [{ text: `${election.title} (${election.state})`, data: `${kind}:${index}` }]);
+    rows.push([{ text: "Cancel", data: "ax" }]);
+    return send(chatId, question, rows);
+}
+
+async function showCandidatesFor(chatId, choice) {
+    const positions = await loadCandidates(choice.id);
+    const lines = [choice.title, ""];
+    if (!positions.length) lines.push("No candidates yet.");
+    positions.forEach(position => {
+        lines.push(position.name + ":");
+        position.cands.forEach(candidate => lines.push("  - " + candidate.name));
+        lines.push("");
+    });
+    return send(chatId, lines.join("\n").trim(), BACK_ROW);
 }
 
 async function showStatus(chatId, student) {
@@ -536,7 +591,7 @@ async function showStatus(chatId, student) {
                 : application.status;
         return `- ${application.position} (${application.electionTitle || "Election"}): ${label}`;
     });
-    return send(chatId, "Your applications:\n" + lines.join("\n"));
+    return send(chatId, "Your applications:\n" + lines.join("\n"), BACK_ROW);
 }
 
 async function showMyVote(chatId, student) {
@@ -551,34 +606,33 @@ async function showMyVote(chatId, student) {
             ? `- ${election.title}: you have voted. Receipt: ${vote.data().receiptCode || "n/a"}`
             : `- ${election.title}: you have not voted yet`);
     }
-    return send(chatId, lines.length ? "Your voting status:\n" + lines.join("\n") : "You are not on the voter list of any election.");
+    return send(chatId, lines.length ? "Your voting status:\n" + lines.join("\n") : "You are not on the voter list of any election.", BACK_ROW);
 }
 
-async function showResults(chatId) {
-    const ended = (await publishedElections())
-        .filter(election => electionState(election) === "ended")
-        .sort((a, b) => toMs(b.endAt) - toMs(a.endAt))
-        .slice(0, 3);
-    if (!ended.length) return send(chatId, "No election has finished yet, so there are no results to show.");
+async function showResultsFor(chatId, choice) {
+    const snap = await db.collection("elections").doc(choice.id).get();
+    if (!snap.exists || snap.data().status !== "published") return send(chatId, "That election is no longer available.");
+    const election = snap.data();
+    const state = electionState(election);
 
-    for (const election of ended) {
-        const response = await getResults({ httpMethod: "GET", headers: {}, queryStringParameters: { id: election.id } });
-        let data = {};
-        try { data = JSON.parse(response.body); } catch { /* empty */ }
-        if (response.statusCode !== 200 || !Array.isArray(data.positions)) {
-            await send(chatId, `${election.title}: results are not available yet.`);
-            continue;
-        }
-        const lines = [`${election.title} - results`, ""];
-        data.positions.forEach(position => {
-            lines.push(`${position.position} (${position.totalVotes} vote(s))`);
-            position.candidates.forEach((candidate, index) => {
-                lines.push(`  ${index + 1}. ${candidate.name}: ${candidate.votes} (${candidate.percentage}%)`);
-            });
-            lines.push("");
-        });
-        await send(chatId, lines.join("\n").trim());
+    if (state === "upcoming") return send(chatId, `${choice.title}: voting has not started yet, so there are no results.`);
+    if (state === "open") return send(chatId, `${choice.title}: voting is still open. Results will be available after it closes (${formatTime(toMs(election.endAt))}).`);
+
+    const response = await getResults({ httpMethod: "GET", headers: {}, queryStringParameters: { id: choice.id } });
+    let data = {};
+    try { data = JSON.parse(response.body); } catch { /* empty */ }
+    if (response.statusCode !== 200 || !Array.isArray(data.positions)) {
+        return send(chatId, `${choice.title}: results are not available yet.`);
     }
+    const lines = [`${choice.title} - results`, ""];
+    data.positions.forEach(position => {
+        lines.push(`${position.position} (${position.totalVotes} vote(s))`);
+        position.candidates.forEach((candidate, index) => {
+            lines.push(`  ${index + 1}. ${candidate.name}: ${candidate.votes} (${candidate.percentage}%)`);
+        });
+        lines.push("");
+    });
+    return send(chatId, lines.join("\n").trim(), BACK_ROW);
 }
 
 /* ---------------- Applying ---------------- */
@@ -678,7 +732,7 @@ async function submitVote(chatId, session, pin) {
 
     if (response.statusCode === 200 && data.success) {
         setStep(session, "idle", {});
-        return send(chatId, `Your vote has been recorded.\nReceipt code: ${data.receiptCode}\nKeep it as proof that you voted. It does not show who you voted for.`);
+        return send(chatId, `Your vote has been recorded.\nReceipt code: ${data.receiptCode}\nKeep it as proof that you voted. It does not show who you voted for.`, BACK_ROW);
     }
     if (response.statusCode === 409) { setStep(session, "idle", {}); return send(chatId, data.message || "You have already voted."); }
     if (response.statusCode === 403 && /pin/i.test(String(data.message))) {
@@ -692,6 +746,9 @@ async function submitVote(chatId, session, pin) {
 
 async function onButton(chatId, session, data, messageId) {
     await clearButtons(chatId, messageId);
+
+    // Main-menu taps behave exactly like typing the command.
+    if (data.startsWith("m:")) return onCommand(chatId, session, data.slice(2));
 
     const link = await currentLink(session, chatId);
     if (!link) return send(chatId, LOGIN_HINT);
@@ -719,9 +776,17 @@ async function onButton(chatId, session, data, messageId) {
         const result = await applyForStudent(student, apply.electionId, position.id);
         return send(chatId, result.error
             ? result.error[1]
-            : `You have applied for ${result.position}. The admins will screen applicants before the election. Check /mystatus.`);
+            : `You have applied for ${result.position}. The admins will screen applicants before the election. Check /mystatus.`, BACK_ROW);
     }
     if (kind === "ax") { setStep(session, "idle", {}); return send(chatId, "Cancelled."); }
+
+    /* ----- picking an election for candidates / results ----- */
+    if (kind === "cl" || kind === "rs") {
+        const pick = session.data.pick;
+        const choice = pick && pick.kind === kind && pick.list[Number(a)];
+        if (!choice) return stale();
+        return kind === "cl" ? showCandidatesFor(chatId, choice) : showResultsFor(chatId, choice);
+    }
 
     /* ----- voting ----- */
     if (kind === "ve") {

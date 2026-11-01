@@ -43,6 +43,7 @@ async function call(method, payload) {
     });
     const menu = await call("setMyCommands", {
         commands: [
+            { command: "menu", description: "Show the main menu buttons" },
             { command: "login", description: "Log in with your registration number and PIN" },
             { command: "signup", description: "Create your account" },
             { command: "forgotpin", description: "Reset your PIN" },
