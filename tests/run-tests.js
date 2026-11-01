@@ -334,14 +334,15 @@ const ADMIN = "admin1|admin@nunsa.org";
     });
     await test("apply: creates the application AND the candidate together; one application per election", async () => {
         seedStudent({ withAccount: true }); draftElection();
-        const r = await apply({ positionId: "pres", price: 1, level: 100 /* ignored */ });
+        const mandate = "Improve student representation, communicate clearly, and publish a transparent account of every commitment.";
+        const r = await apply({ positionId: "pres", mandate, price: 1, level: 100 /* ignored */ });
         eq(r.status, 200, r.message);
         const app = store.get("applications/F1_" + DOC_ID);
-        eq(app.status, "applied"); eq(app.position, "President"); eq(app.matricNumber, MATRIC); eq(app.authUid, "uid-" + DOC_ID);
+        eq(app.status, "applied"); eq(app.position, "President"); eq(app.matricNumber, MATRIC); eq(app.authUid, "uid-" + DOC_ID); eq(app.mandate, mandate);
         const candidate = store.get("candidates/form_F1_" + DOC_ID);
         ok(candidate, "no candidate created");
         eq(candidate.status, "active"); eq(candidate.position, "President"); eq(candidate.electionId, "F1");
-        eq(candidate.name, "Real Student"); eq(candidate.matricNumber, MATRIC);
+        eq(candidate.name, "Real Student"); eq(candidate.matricNumber, MATRIC); eq(candidate.mandate, mandate);
         eq((await apply({ positionId: "pres" })).status, 409, "same position again");
         eq((await apply({ positionId: "sec" })).status, 409, "another position in the same election");
         eq([...store.keys()].filter(k => k.startsWith("candidates/")).length, 1);

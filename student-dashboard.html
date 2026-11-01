@@ -28,9 +28,9 @@
     <div class="student-menu" id="student-menu" hidden>
       <a href="student-dashboard.html">Home</a>
       <a href="voter-portal.html">Elections</a>
-      <a href="student-dashboard.html#forms-section">Applications</a>
+      <a href="student-applications.html">Applications</a>
       <a href="announcements.html">Announcements</a>
-      <a href="student-dashboard.html#profile">My profile</a>
+      <a href="student-profile.html">My profile</a>
       <div class="menu-divider"></div>
       <label for="theme-choice">Appearance</label>
       <select id="theme-choice" aria-label="Choose appearance">
@@ -56,10 +56,10 @@
       <nav class="quick-links" aria-label="Quick actions">
         <a href="voter-portal.html"><span class="quick-icon icon-teal">◉</span><strong>Vote</strong><small>Open elections</small></a>
         <a href="candidate-directory.html"><span class="quick-icon icon-mint">♧</span><strong>Candidates</strong><small>Meet the candidates</small></a>
-        <a href="#forms-section"><span class="quick-icon icon-gold">▤</span><strong>Apply</strong><small>Run for a position</small></a>
+        <a href="student-applications.html"><span class="quick-icon icon-gold">▤</span><strong>Apply</strong><small>Run for a position</small></a>
         <a href="student-results.html"><span class="quick-icon icon-sky">▥</span><strong>Results</strong><small>View outcomes</small></a>
         <a href="student-receipts.html"><span class="quick-icon icon-coral">▧</span><strong>My receipt</strong><small>Voting record</small></a>
-        <a href="https://t.me/NUNSAFUDVotingBot" target="_blank" rel="noopener"><span class="quick-icon icon-teal">➤</span><strong>Telegram bot</strong><small>Use Telegram</small></a>
+        <a href="https://t.me/nunsafud_bot" target="_blank" rel="noopener noreferrer"><span class="quick-icon icon-teal">➤</span><strong>Telegram bot</strong><small>Use Telegram</small></a>
       </nav>
     </section>
 
@@ -67,34 +67,8 @@
     <div id="home-announcements" class="home-dynamic-block"></div>
     <div id="home-status" class="home-dynamic-block"></div>
 
-    <section class="home-section profile-section" id="profile">
-      <div class="section-heading"><div><p class="eyebrow">YOUR ACCOUNT</p><h2>My profile</h2></div></div>
-      <div class="profile-editor">
-        <div class="profile-image-control">
-          <img class="profile-large-avatar" src="assets/default-profile.jpg" id="profile-avatar-secondary" alt="Your profile picture" />
-          <label class="profile-upload-link" for="profile-picture-input">Change picture</label>
-          <input accept="image/*" id="profile-picture-input" type="file" hidden />
-        </div>
-        <div class="profile-data">
-          <p><span>Full name</span><strong id="profile-name">Loading…</strong></p>
-          <p><span>Matriculation number</span><strong id="profile-matric-secondary">Loading…</strong></p>
-          <p><span>Academic level</span><strong id="profile-level-secondary">Not provided</strong></p>
-          <p id="profile-picture-message" class="inline-message" aria-live="polite"></p>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section application-section" id="forms-section" hidden>
-      <div class="section-heading"><div><p class="eyebrow">CANDIDATE APPLICATIONS</p><h2>Run for a position</h2></div></div>
-      <p id="forms-intro" class="section-description">Apply for an available position when applications are open.</p>
-      <div id="forms-applications"></div>
-      <div id="forms-offers"></div>
-      <p id="forms-feedback" class="inline-message"></p>
-    </section>
-
     <section id="student-message-section" class="home-message" hidden><p id="student-dashboard-message"></p></section>
-    <button id="voter-portal-btn" type="button" class="visually-hidden">Open elections</button>
-  </main>
+    </main>
   <footer class="site-footer"><p>NUNSA-FUD Electronic Voting System</p></footer>
 
   <script src="student-dashboard.js" type="module"></script>
