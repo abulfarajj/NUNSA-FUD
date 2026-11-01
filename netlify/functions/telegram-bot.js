@@ -247,7 +247,8 @@ const HELP = [
     "/vote - cast your vote",
     "/myvote - check whether you have voted",
     "/results - see results of finished elections",
-    "/notices - latest announcements",
+    "/notices - latest announcements (no login required)",
+    "/announcement - same as /notices",
     "/logout - log out of this chat",
     "/cancel - stop what you are doing"
 ].join("\n");
@@ -277,7 +278,8 @@ function mainMenuRows(loggedIn) {
         ]
         : [
             [{ text: "\u{1F510} Login", data: "m:login" }, { text: "\u{1F195} Sign up", data: "m:signup" }],
-            [{ text: "\u{1F511} Forgot PIN", data: "m:forgotpin" }]
+            [{ text: "\u{1F511} Forgot PIN", data: "m:forgotpin" }],
+            [{ text: "\u{1F4E2} Announcements", data: "m:notices" }]
         ];
     const last = [];
     last.push({ text: "\u{1F4F1} Open app", url: appLink() });
@@ -513,8 +515,11 @@ async function onCommand(chatId, session, command) {
         }
     }
 
-    const known = ["elections", "candidates", "apply", "mystatus", "vote", "myvote", "results", "notices"];
+    const known = ["elections", "candidates", "apply", "mystatus", "vote", "myvote", "results", "notices", "notice", "announcement"];
     if (!known.includes(command)) return send(chatId, "I do not know that command. Type /help.");
+
+    // Announcements are public notices; reading them must not require a student login.
+    if (["notices", "notice", "announcement"].includes(command)) return showNotices(chatId, session);
 
     const link = await currentLink(session, chatId);
     if (!link) return send(chatId, LOGIN_HINT, LOGIN_ROWS);
@@ -528,21 +533,59 @@ async function onCommand(chatId, session, command) {
         case "mystatus": return showStatus(chatId, student);
         case "vote": return startVote(chatId, session, student);
         case "myvote": return showMyVote(chatId, student);
-        case "notices": return showNotices(chatId);
         case "results": return pickElection(chatId, session, "rs", "Which election's results do you want to see?");
     }
 }
 
 /* ---------------- Information commands ---------------- */
 
-async function showNotices(chatId) {
+async function showNotices(chatId, session) {
     const site = String(process.env.SITE_URL || "https://nunsafud.name.ng").replace(/\/+$/, "");
-    const snap = await db.collection("announcements").orderBy("createdAt", "desc").limit(20).get();
+    const snap = await db.collection("announcements").orderBy("createdAt", "desc").limit(30).get();
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => (b.pinned === true) - (a.pinned === true)).slice(0, 5);
-    if (!items.length) return send(chatId, "No announcements yet.", BACK_ROW);
-    const lines = items.map(a => (a.pinned ? "\u{1F4CC} " : "\u2022 ") + String(a.title || "").slice(0, 120) + " (" + String(a.authorName || "") + ")\n" + site + "/a/" + a.id);
-    return send(chatId, "Latest announcements:\n\n" + lines.join("\n\n"), BACK_ROW);
+        .sort((a, b) => ((b.pinned === true) - (a.pinned === true)) || (toMs(b.createdAt) - toMs(a.createdAt)))
+        .slice(0, 8);
+    if (!items.length) return send(chatId, "No announcements have been published yet.", BACK_ROW);
+
+    // Keep only IDs and display-safe fields in the short-lived chat session.
+    setStep(session, "idle", { announcements: items.map(a => ({
+        id: String(a.id), title: String(a.title || "Announcement").slice(0, 120),
+        body: String(a.body || "").slice(0, 4000), authorName: String(a.authorName || a.createdByName || "NUNSA-FUD").slice(0, 100),
+        authorPosition: String(a.authorPosition || "").slice(0, 100), createdAt: toMs(a.createdAt),
+        pinned: a.pinned === true, hasImage: !!a.image
+    })) });
+
+    const rows = items.map((a, index) => [{
+        text: `${a.pinned ? "📌 " : ""}${String(a.title || "Announcement").slice(0, 55)}`,
+        data: `an:${index}`
+    }]);
+    rows.push([{ text: "Open announcements page", url: `${site}/announcements.html` }]);
+    rows.push([{ text: "🏠 Menu", data: "m:menu" }]);
+    const previews = items.slice(0, 5).map(a => {
+        const author = [a.authorName || a.createdByName, a.authorPosition].filter(Boolean).join(" · ");
+        const date = toMs(a.createdAt);
+        const excerpt = String(a.body || (a.image ? "Image announcement" : "")).replace(/\s+/g, " ").trim();
+        return `${a.pinned ? "📌 " : "• "}${String(a.title || "Announcement").slice(0, 120)}${author ? `\nBy ${author}` : ""}${Number.isFinite(date) ? `\n${formatTime(date)}` : ""}${excerpt ? `\n${excerpt.slice(0, 150)}${excerpt.length > 150 ? "…" : ""}` : ""}`;
+    });
+    return send(chatId, `NUNSA-FUD ANNOUNCEMENTS\nLatest notices are available to everyone. Tap a title to read the full announcement.\n\n${previews.join("\n\n")}`, rows);
+}
+
+async function showAnnouncementDetail(chatId, session, index) {
+    const items = session.data && session.data.announcements;
+    const a = items && items[Number(index)];
+    if (!a || !a.id) return send(chatId, "That announcement selection has expired. Use /notices to load the latest notices.", BACK_ROW);
+    const site = String(process.env.SITE_URL || "https://nunsafud.name.ng").replace(/\/+$/, "");
+    const author = [a.authorName, a.authorPosition].filter(Boolean).join(" · ");
+    const date = Number.isFinite(a.createdAt) ? formatTime(a.createdAt) : "";
+    const body = a.body || (a.hasImage ? "This announcement includes an image. Open it on the website to view the full post." : "No additional text was provided.");
+    const lines = [a.pinned ? "📌 PINNED ANNOUNCEMENT" : "NUNSA-FUD ANNOUNCEMENT", a.title, "", body];
+    if (author) lines.push("", `Posted by: ${author}`);
+    if (date) lines.push(`Published: ${date}`);
+    if (a.hasImage) lines.push("", "An image is attached to this announcement. Open the full post to view it.");
+    return send(chatId, lines.join("\n"), [
+        [{ text: "View full announcement", url: `${site}/a/${encodeURIComponent(a.id)}` }],
+        [{ text: "← All announcements", data: "m:notices" }, { text: "🏠 Menu", data: "m:menu" }]
+    ]);
 }
 
 async function showElections(chatId, student) {
@@ -761,6 +804,9 @@ async function onButton(chatId, session, data, messageId) {
 
     // Main-menu taps behave exactly like typing the command.
     if (data.startsWith("m:")) return onCommand(chatId, session, data.slice(2));
+
+    // Reading announcements is public, so these callbacks work without a linked student account.
+    if (data.startsWith("an:")) return showAnnouncementDetail(chatId, session, data.slice(3));
 
     const link = await currentLink(session, chatId);
     if (!link) return send(chatId, LOGIN_HINT);

@@ -1,10 +1,10 @@
 import { waitUser, noticesApi, ago, shareNotice, el } from "./nunsa-client.js";
 
 const $ = id => document.getElementById(id);
-const f = { title: $("title"), author: $("author"), text: $("text"), mode: $("mode"), file: $("file"), pinned: $("pinned"),
+const f = { title: $("title"), author: $("author"), position: $("author-position"), text: $("text"), mode: $("mode"), file: $("file"), pinned: $("pinned"),
             save: $("save"), cancel: $("cancel"), msg: $("msg"), prev: $("preview"), wrap: $("preview-wrap"), list: $("list") };
-let image = "", editId = null, MAXLEN = 600000, isAdmin = true;
-const authorValue = () => (isAdmin ? f.author.value : $("author-select").value);
+let image = "", editId = null, MAXLEN = 600000, isAdmin = true, currentName = "";
+const positionValue = () => (isAdmin ? f.position.value : $("author-select").value);
 const say = (t, type) => { f.msg.textContent = t || ""; f.msg.className = "message" + (type ? " " + type : ""); };
 
 /* ---- image helpers: everything ends as a compressed JPEG data URL ---- */
@@ -41,11 +41,21 @@ async function makeFromText() {
     while (tl.length > 4 && ts > 52) { ts -= 6; x.font = `700 ${ts}px system-ui, sans-serif`; tl = wrap(x, f.title.value, W - 2 * P); }
     let y = 290; tl.forEach(l => { x.fillText(l, P, y); y += ts * 1.18; });
     y += 30; let bs = 44; const bottom = H - 230;
-    let bl; do { x.font = `400 ${bs}px system-ui, sans-serif`; bl = wrap(x, f.text.value, W - 2 * P); bs -= 2; } while (bl.length * (bs + 2) * 1.4 > bottom - y && bs > 24);
-    x.fillStyle = "#dcebed"; bl.forEach(l => { if (y < bottom) { x.fillText(l, P, y); y += (bs + 2) * 1.4; } });
+    let bl;
+    do {
+        x.font = `400 ${bs}px system-ui, sans-serif`;
+        bl = wrap(x, f.text.value, W - 2 * P);
+        bs -= 2;
+    } while (bl.length * (bs + 4) * 1.4 > bottom - y && bs > 20);
+    const lineHeight = (bs + 4) * 1.4;
+    if (bl.length * lineHeight > bottom - y) return "";
+    x.font = `400 ${bs + 2}px system-ui, sans-serif`;
+    x.fillStyle = "#dcebed";
+    bl.forEach(l => { x.fillText(l, P, y); y += lineHeight; });
     x.fillStyle = "#c9962b"; x.fillRect(P, H - 170, W - 2 * P, 3);
-    x.fillStyle = "#fff"; x.font = "700 40px system-ui, sans-serif"; x.fillText(authorValue().trim() || "NUNSA-FUD", P, H - 140);
-    x.fillStyle = "#a8cbd0"; x.font = "400 30px system-ui, sans-serif"; x.fillText(new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }), P, H - 85);
+    x.fillStyle = "#fff"; x.font = "700 38px system-ui, sans-serif"; x.fillText((f.author.value || currentName || "NUNSA-FUD").trim(), P, H - 155);
+    x.fillStyle = "#a8cbd0"; x.font = "400 28px system-ui, sans-serif"; x.fillText(positionValue().trim(), P, H - 112);
+    x.font = "400 25px system-ui, sans-serif"; x.fillText(new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }), P, H - 68);
     return toJpeg(c);
 }
 async function fromFile(file) {
@@ -63,12 +73,15 @@ async function refreshImage() {
     if (m === "none") image = "";
     else if (m === "make") {
         if (!f.title.value.trim()) { image = ""; say("Add a title first, then the image is made from your text."); }
-        else { image = await makeFromText(); say(image ? "" : "Image too large — shorten the text.", image ? "" : "error"); }
+        else {
+            image = await makeFromText();
+            say(image ? "" : "This message will not fit in one image. Shorten it or choose text-only.", image ? "" : "error");
+        }
     }
     showPreview();
 }
 f.mode.onchange = refreshImage;
-["input"].forEach(ev => { f.title.addEventListener(ev, () => { if (f.mode.value === "make") refreshImage(); }); f.text.addEventListener(ev, debounce(() => { if (f.mode.value === "make") refreshImage(); })); f.author.addEventListener(ev, debounce(() => { if (f.mode.value === "make") refreshImage(); })); });
+["input"].forEach(ev => { f.title.addEventListener(ev, () => { if (f.mode.value === "make") refreshImage(); }); f.text.addEventListener(ev, debounce(() => { if (f.mode.value === "make") refreshImage(); })); f.author.addEventListener(ev, debounce(() => { if (f.mode.value === "make") refreshImage(); })); f.position.addEventListener(ev, debounce(() => { if (f.mode.value === "make") refreshImage(); })); });
 function debounce(fn) { let t; return () => { clearTimeout(t); t = setTimeout(fn, 350); }; }
 f.file.onchange = async () => { const file = f.file.files[0]; if (!file) return; image = await fromFile(file); say(image ? "" : "That image is too large.", image ? "" : "error"); showPreview(); };
 
@@ -83,7 +96,7 @@ async function reload() {
     if (!mineOnly.length) f.list.replaceChildren(el("p", "", "Nothing posted by you yet."));
     for (const a of mineOnly) {
         const row = el("div", "notice"); row.style.flexDirection = "column";
-        const head = el("div", ""); head.append(el("span", "tag", a.authorName + (a.pinned ? " · Pinned" : "")), el("strong", "", a.title));
+        const head = el("div", ""); head.append(el("span", "tag", [a.authorName, a.authorPosition].filter(Boolean).join(" · ") + (a.pinned ? " · Pinned" : "")), el("strong", "", a.title));
         head.querySelector("strong").style.display = "block";
         const small = el("small", "", ago(a.createdAt) + (a.hasImage ? " · has image" : "")); small.style.color = "var(--muted)";
         const acts = el("div", "form-actions"); acts.style.marginTop = "8px";
@@ -99,7 +112,7 @@ async function startEdit(id) {
     const d = await noticesApi(null, "?id=" + encodeURIComponent(id));
     if (!d.success) { say(d.message, "error"); return; }
     const a = d.announcement; editId = a.id;
-    f.title.value = a.title; f.author.value = a.authorName; $("author-select").value = a.authorName; f.text.value = a.body; f.pinned.checked = a.pinned;
+    f.title.value = a.title; f.author.value = a.authorName || ""; f.position.value = a.authorPosition || ""; $("author-select").value = a.authorPosition || ""; f.text.value = a.body; f.pinned.checked = a.pinned;
     image = a.image || ""; f.mode.innerHTML = '<option value="keep">Keep current image</option><option value="none">No image</option><option value="make">Make an image from my text</option><option value="upload">Upload my own image</option>';
     f.mode.value = "keep"; showPreview(); $("form-title").textContent = "Edit announcement"; f.save.textContent = "SAVE CHANGES"; f.cancel.hidden = false;
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -107,14 +120,17 @@ async function startEdit(id) {
 function resetForm() {
     editId = null; image = ""; $("form").reset();
     f.mode.innerHTML = '<option value="none">No image (text only)</option><option value="make">Make an image from my text</option><option value="upload">Upload my own image</option>';
-    f.file.hidden = true; f.wrap.hidden = true; $("form-title").textContent = "New announcement"; f.save.textContent = "POST ANNOUNCEMENT"; f.cancel.hidden = true;
+    f.file.hidden = true; f.wrap.hidden = true; f.author.value = isAdmin ? "" : currentName; f.position.value = ""; $("form-title").textContent = "New announcement"; f.save.textContent = "POST ANNOUNCEMENT"; f.cancel.hidden = true;
 }
 f.cancel.onclick = () => { resetForm(); say(""); };
 $("form").onsubmit = async e => {
     e.preventDefault();
-    if (f.mode.value === "make") await refreshImage();
+    if (f.mode.value === "make") {
+        await refreshImage();
+        if (!image) return;
+    }
     f.save.disabled = true; say("Posting…");
-    const r = await noticesApi({ action: editId ? "update" : "create", id: editId, title: f.title.value, authorName: authorValue(), body: f.text.value, image, pinned: f.pinned.checked });
+    const r = await noticesApi({ action: editId ? "update" : "create", id: editId, title: f.title.value, authorName: f.author.value, authorPosition: positionValue(), body: f.text.value, image, pinned: f.pinned.checked });
     f.save.disabled = false; say(r.message, r.success ? "success" : "error");
     if (r.success) { resetForm(); say(r.message, "success"); reload(); }
 };
@@ -124,11 +140,13 @@ $("form").onsubmit = async e => {
     if (!user) { try { localStorage.setItem("nunsaNext", "/announcements.html"); } catch {} location.href = "index.html"; return; }
     const me = await noticesApi(null, "?me=1");
     if (!me.success || !me.canPost) { location.href = "announcements.html"; return; }
-    isAdmin = me.isAdmin;
+    isAdmin = me.isAdmin; currentName = me.name || "";
     if (!isAdmin) {
-        const sel = $("author-select"); sel.hidden = false; $("author").hidden = true; $("pin-row").hidden = true;
+        f.author.value = currentName; f.author.readOnly = true;
+        f.position.hidden = true; document.querySelector('label[for="author-position"]').hidden = true;
+        const sel = $("author-select"); sel.hidden = false; $("pin-row").hidden = true;
         $("back").href = "student-dashboard.html";
-        for (const o of me.offices) { const op = document.createElement("option"); op.value = o.position; op.textContent = o.position; sel.append(op); }
+        for (const o of me.offices || []) { const op = document.createElement("option"); op.value = o.position; op.textContent = o.position; sel.append(op); }
         sel.onchange = () => { if (f.mode.value === "make") refreshImage(); };
     }
     reload();

@@ -9,6 +9,7 @@
     </title>
 <link href="style.css" rel="stylesheet"/>
 <link href="theme.css" rel="stylesheet"/>
+<link href="redesign.css" rel="stylesheet"/>
 </head>
 <body class="nunsa-page page-students">
 <header class="admin-header editorial-topbar">
@@ -66,6 +67,8 @@
                 </p>
 <span class="card-arrow">↗</span></button>
 </div>
+<p class="import-guidance">For bulk imports, include these columns: <code>matricNumber</code>, <code>name</code>, and <code>academicLevel</code>. Academic level is optional, but including it keeps student dashboards accurate.</p>
+<a class="section-link" id="student-template-download" href="data:text/csv;charset=utf-8,matricNumber%2Cname%2CacademicLevel%0ABMS%2FNUR%2F24%2F1004%2CAhmad%20Example%2C200%20Level" download="nunsa-student-import-template.csv">Download CSV template ↓</a>
 </section>
 <!-- SEARCH -->
 <section class="dashboard-section" data-motion="rise">
@@ -92,5 +95,6 @@
 ========================= -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="students.js" type="module"></script>
-<script defer="True" src="motion.js"></script></body>
+<script defer="True" src="motion.js"></script><script src="theme.js" type="module"></script>
+</body>
 </html>

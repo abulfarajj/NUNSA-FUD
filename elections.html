@@ -4,6 +4,7 @@
 <title>NUNSA-FUD Elections</title>
 <link href="style.css" rel="stylesheet"/>
 <link href="theme.css" rel="stylesheet"/>
+<link href="redesign.css" rel="stylesheet"/>
 </head><body class="nunsa-page page-elections"><header class="admin-header editorial-topbar"><div class="admin-header-left brand-lockup">
 <img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/>
 <div>
@@ -53,6 +54,9 @@
                 End Date &amp; Time
             </label>
 <input id="election-end" required="" type="datetime-local"/>
+<label for="election-term-end">Elected Officers' Tenure Ends (Optional)</label>
+<input id="election-term-end" type="datetime-local" aria-describedby="election-term-help" />
+<small id="election-term-help" class="import-guidance">Set this to automatically end announcement permissions for elected representatives when their tenure expires. Leave blank if the tenure end has not been determined.</small>
 <button class="login-button" type="submit">
                 CREATE ELECTION
             </button>
@@ -74,4 +78,5 @@
 </main><footer><p>
     NUNSA-FUD Electronic Voting System
 </p>
-</footer><script src="elections.js" type="module"></script><script defer="True" src="motion.js"></script></body></html>
+</footer><script src="elections.js" type="module"></script><script defer="True" src="motion.js"></script><script src="theme.js" type="module"></script>
+</body></html>

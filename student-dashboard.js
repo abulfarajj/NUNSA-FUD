@@ -1,36 +1,15 @@
 import {
-    initializeApp
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-
-import {
-    getAuth,
     onAuthStateChanged,
     signOut
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
-import {
-    getFirestore,
-    doc,
-    getDoc,
-    updateDoc
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { auth, db } from "./nunsa-client.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyA-3bioPt3VR_swJ5ItGJY7PJbo8AD7nf0",
-    authDomain: "nunsa-voting-app.firebaseapp.com",
-    projectId: "nunsa-voting-app",
-    storageBucket: "nunsa-voting-app.firebasestorage.app",
-    messagingSenderId: "1069853481069",
-    appId: "1:1069853481069:web:63ebcca28764",
-    measurementId: "G-EMYNQR6T0F"
-};
+
 
 const CLOUDINARY_CLOUD_NAME = "buwozjy8";
 const CLOUDINARY_UPLOAD_PRESET = "nunsa_profile_pictures";
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 const studentName =
     document.getElementById("student-name");
@@ -40,6 +19,11 @@ const profileName =
 
 const profileMatric =
     document.getElementById("profile-matric");
+
+const studentLevel = document.getElementById("student-level");
+const profileMatricSecondary = document.getElementById("profile-matric-secondary");
+const profileLevelSecondary = document.getElementById("profile-level-secondary");
+const profileAvatarSecondary = document.getElementById("profile-avatar-secondary");
 
 const profilePicture =
     document.getElementById(
@@ -175,17 +159,18 @@ async function loadStudent() {
         profileName.textContent =
             name;
 
-        profileMatric.textContent =
-            matricNumber;
+        profileMatric.textContent = matricNumber;
+        if (profileMatricSecondary) profileMatricSecondary.textContent = matricNumber;
 
-        profilePicture.src =
-            image;
+        const academicLevel = studentData.academicLevel || studentData.level || studentData.currentLevel || "Not provided";
+        if (studentLevel) studentLevel.textContent = academicLevel;
+        if (profileLevelSecondary) profileLevelSecondary.textContent = academicLevel;
 
-        profilePicture.onerror =
-            () => {
-                profilePicture.src =
-                    DEFAULT_PROFILE;
-            };
+        profilePicture.src = image;
+        if (profileAvatarSecondary) profileAvatarSecondary.src = image;
+
+        profilePicture.onerror = () => { profilePicture.src = DEFAULT_PROFILE; };
+        if (profileAvatarSecondary) profileAvatarSecondary.onerror = () => { profileAvatarSecondary.src = DEFAULT_PROFILE; };
 
     } catch (error) {
         console.error(
@@ -314,8 +299,8 @@ async function uploadProfilePicture(file) {
             }
         );
 
-        profilePicture.src =
-            result.secure_url;
+        profilePicture.src = result.secure_url;
+        if (profileAvatarSecondary) profileAvatarSecondary.src = result.secure_url;
 
         showProfilePictureMessage(
             "Profile picture updated successfully.",
@@ -557,7 +542,11 @@ async function loadForms() {
         renderFormsOffers(data.offers || [], data.applications || []);
 
         const hasContent = (data.applications || []).length > 0 || formsOffers.children.length > 0;
-        formsSection.style.display = hasContent ? "block" : "none";
+        formsSection.hidden = false;
+        formsSection.style.display = "block";
+        const intro = document.getElementById("forms-intro");
+        if (intro) intro.textContent = hasContent ? "Review your applications or apply for an available position." : "Applications are currently closed. New opportunities will appear here when they open.";
+        if (location.hash === "#forms-section") formsSection.scrollIntoView({ block: "start", behavior: "smooth" });
     } catch (error) {
         console.error("Candidate applications error:", error);
     }

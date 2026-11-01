@@ -33,6 +33,7 @@ const resultsBtn = document.getElementById("results-btn");
 const studentsBtn = document.getElementById("students-btn");
 
 const formsBtn = document.getElementById("forms-btn");
+const announcementsBtn = document.getElementById("announcements-btn");
 
 onAuthStateChanged(auth, async (user) => {
 
@@ -83,3 +84,4 @@ try { await signOut(auth); window.location.href = "admin-login.html"; } catch (e
 );
 
 formsBtn.addEventListener("click", () => { window.location.href = "forms.html"; });
+announcementsBtn.addEventListener("click", () => { window.location.href = "admin-announcements.html"; });

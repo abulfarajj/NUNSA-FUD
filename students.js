@@ -16,6 +16,7 @@ import {
     query,
     orderBy,
     setDoc,
+    updateDoc,
     writeBatch,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
@@ -57,6 +58,10 @@ function normalizeMatric(value) {
     return String(value || "")
         .trim()
         .toUpperCase();
+}
+
+function normalizeAcademicLevel(value) {
+    return String(value == null ? "" : value).trim().replace(/\s+/g, " ").slice(0, 30);
 }
 
 function matricDocumentId(matricNumber) {
@@ -118,7 +123,8 @@ async function checkAdmin(user) {
 
 async function saveNewStudent(
     matricNumber,
-    name
+    name,
+    academicLevel = ""
 ) {
     const normalizedMatric =
         normalizeMatric(
@@ -161,6 +167,8 @@ async function saveNewStudent(
 
         name:
             studentName,
+
+        ...(normalizeAcademicLevel(academicLevel) ? { academicLevel: normalizeAcademicLevel(academicLevel) } : {}),
 
         status:
             "active",
@@ -256,7 +264,8 @@ async function importStudentBatch(
 
         validStudents.push({
             matricNumber,
-            name
+            name,
+            academicLevel: normalizeAcademicLevel(student.academicLevel || student.level || "")
         });
     }
 
@@ -315,6 +324,8 @@ async function importStudentBatch(
 
                     name:
                         student.name,
+
+                    ...(student.academicLevel ? { academicLevel: student.academicLevel } : {}),
 
                     status:
                         "active",
@@ -498,9 +509,19 @@ function renderStudents(
                 matric
             );
 
-                        card.appendChild(
-                status
-            );
+                        const level = document.createElement("p");
+            level.innerHTML = "<strong>Academic level:</strong> ";
+            level.appendChild(document.createTextNode(student.academicLevel || student.level || "Not set"));
+
+            card.appendChild(status);
+            card.appendChild(level);
+
+            const editLevelButton = document.createElement("button");
+            editLevelButton.type = "button";
+            editLevelButton.className = "student-reset-btn student-level-edit-btn";
+            editLevelButton.textContent = "Update academic level";
+            editLevelButton.addEventListener("click", () => updateAcademicLevel(student, editLevelButton));
+            card.appendChild(editLevelButton);
 
             // Super Admins only, and only for students who have registered.
             if (
@@ -539,6 +560,25 @@ function renderStudents(
             );
         }
     );
+}
+
+async function updateAcademicLevel(student, button) {
+    const current = student.academicLevel || student.level || "";
+    const value = prompt(`Academic level for ${student.name} (${student.matricNumber}):`, current);
+    if (value === null) return;
+    const academicLevel = normalizeAcademicLevel(value);
+    button.disabled = true;
+    try {
+        await updateDoc(doc(db, "students", student.id), {
+            academicLevel,
+            updatedAt: serverTimestamp()
+        });
+        await loadStudents();
+    } catch (error) {
+        console.error("Update academic level error:", error);
+        alert(error.message || "Unable to update this student's academic level.");
+        button.disabled = false;
+    }
 }
 
 async function callResetRegistration(
@@ -705,6 +745,9 @@ function addSingleStudent() {
         return;
     }
 
+    const academicLevel = prompt("Enter the student's current academic level (for example, 200 Level). Leave blank if it is not available:", "");
+    if (academicLevel === null) return;
+
     addStudentButton.disabled =
         true;
 
@@ -713,7 +756,8 @@ function addSingleStudent() {
 
     saveNewStudent(
         matricNumber,
-        name
+        name,
+        academicLevel
     )
         .then(
             async () => {
@@ -825,6 +869,17 @@ function importStudents() {
                                 row.name ||
                                 row.Name ||
                                 row["Student Name"] ||
+                                "",
+
+                            academicLevel:
+                                row.academicLevel ||
+                                row.AcademicLevel ||
+                                row["Academic Level"] ||
+                                row.currentLevel ||
+                                row.CurrentLevel ||
+                                row["Current Level"] ||
+                                row.level ||
+                                row.Level ||
                                 ""
                         })
                     );

@@ -8,31 +8,63 @@ const say = (t, type) => { msg.textContent = t || ""; msg.className = "message" 
 function meta(a) {
     const row = el("div", "", "");
     row.style.cssText = "display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.8rem;color:var(--muted)";
-    row.append(el("span", "tag", a.authorName), el("span", "", ago(a.createdAt)));
+    row.append(el("span", "tag", a.authorName));
+    if (a.authorPosition) row.append(el("span", "", a.authorPosition));
+    row.append(el("span", "", ago(a.createdAt)));
     if (a.pinned) row.append(el("span", "tag", "Pinned"));
     return row;
 }
 
-async function showFeed(canManageHint) {
+async function showFeed() {
     const data = await noticesApi();
     if (!data.success) { say(data.message || "Unable to load.", "error"); return; }
     back.href = "/" + backHref(data.canManage);
     feed.replaceChildren();
-    const top = el("div", ""); top.style.cssText = "display:flex;justify-content:space-between;align-items:flex-end;margin:20px 0 6px";
+
+    const top = el("div", "announcement-feed-heading");
     top.append(el("h2", "", "Notice board"));
-    if (data.canPost) { const m = el("a", "tag", data.canManage ? "Manage →" : "Post a notice →"); m.href = "/admin-announcements.html"; top.append(m); }
-    feed.append(top);
-    if (!data.announcements.length) feed.append(el("p", "", "Nothing posted yet."));
-    for (const a of data.announcements) {
-        const row = el("a", "notice"); row.href = "/a/" + encodeURIComponent(a.id); row.style.textDecoration = "none";
-        const left = el("div", ""); left.style.minWidth = "0";
-        const t = el("strong", "", a.title); t.style.display = "block";
-        left.append(meta(a), t);
-        if (a.body) { const p = el("p", "", a.body.length > 120 ? a.body.slice(0, 120) + "…" : a.body); p.style.cssText = "color:var(--muted);margin:4px 0 0;font-size:.92rem"; left.append(p); }
-        row.append(left);
-        if (a.hasImage) { const b = el("span", "tag", "Image"); b.style.whiteSpace = "nowrap"; row.append(b); }
-        feed.append(row);
+    if (data.canPost) {
+        const manage = el("a", "tag", data.canManage ? "Manage announcements →" : "Post an announcement →");
+        manage.href = "/admin-announcements.html"; top.append(manage);
     }
+    feed.append(top);
+
+    const search = el("input", "announcement-search");
+    search.type = "search"; search.placeholder = "Search announcements";
+    search.setAttribute("aria-label", "Search announcements");
+    feed.append(search);
+    const list = el("div", "announcement-feed-list");
+    feed.append(list);
+
+    const render = () => {
+        const term = search.value.trim().toLocaleLowerCase();
+        const items = (data.announcements || []).filter(a =>
+            !term || [a.title, a.body, a.authorName, a.authorPosition].some(v => String(v || "").toLocaleLowerCase().includes(term))
+        );
+        list.replaceChildren();
+        if (!items.length) { list.append(el("p", "empty-note", term ? "No announcements match your search." : "Nothing posted yet.")); return; }
+        for (const a of items) {
+            const row = el("div", "announcement-feed-row");
+            const link = el("a", "announcement-feed-link"); link.href = "/a/" + encodeURIComponent(a.id);
+            const title = el("strong", "", a.title);
+            const info = el("div", "announcement-meta");
+            info.append(el("span", "tag", a.authorName));
+            if (a.authorPosition) info.append(el("span", "", a.authorPosition));
+            info.append(el("span", "", ago(a.createdAt)));
+            if (a.pinned) info.append(el("span", "tag", "Pinned"));
+            link.append(info, title);
+            if (a.body) link.append(el("p", "announcement-excerpt", a.body.length > 160 ? a.body.slice(0, 160) + "…" : a.body));
+            if (a.hasImage) link.append(el("span", "tag", "Image attached"));
+            const share = el("button", "secondary-btn announcement-share", "Copy link");
+            share.type = "button"; share.addEventListener("click", async () => {
+                const result = await shareNotice(a.id, a.title);
+                if (result) say(result, "success");
+            });
+            row.append(link, share); list.append(row);
+        }
+    };
+    search.addEventListener("input", render);
+    render();
 }
 
 async function showOne(id) {

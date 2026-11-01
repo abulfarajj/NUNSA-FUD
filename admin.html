@@ -8,6 +8,7 @@
 <title>NUNSA-FUD Election Administration</title>
 <link href="style.css" rel="stylesheet"/>
 <link href="theme.css" rel="stylesheet"/>
+<link href="redesign.css" rel="stylesheet"/>
 </head>
 <body class="nunsa-page page-admin">
 <header class="admin-header editorial-topbar">
@@ -22,94 +23,40 @@
         Logout
     </button>
 </header>
-<main class="admin-dashboard editorial-page layout-admin dashboard-page"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">ELECTION OPERATIONS</p><span class="intro-rule"></span></div><h2 aria-label="The work behind every vote." class="drop-headline">The work behind every vote.</h2><p class="intro-copy">Manage the election process from one focused workspace.</p></section>
-<section class="admin-welcome-card" data-motion="rise">
-<p class="small-label">
-            ADMINISTRATOR
-        </p>
-<h2 id="admin-name">
-            Loading...
-        </h2>
-<span class="role-badge" id="admin-role">
-            Loading...
-        </span>
-</section>
-<section class="dashboard-section" data-motion="rise">
-<h2>
-            Election Management
-        </h2>
-<div class="dashboard-grid">
-<button class="dashboard-card" id="announcements-btn" type="button"><span class="card-index">★</span>
-<h3>
-                    Announcements
-                </h3>
-<p>
-                    Post notices and share links
-                </p>
-<span class="card-arrow">↗</span></button>
-<button class="dashboard-card" id="elections-btn" type="button"><span class="card-index">01</span>
-<h3>
-                    Elections
-                </h3>
-<p>
-                    Create and manage elections
-                </p>
-<span class="card-arrow">↗</span></button>
-<button class="dashboard-card" id="candidates-btn" type="button"><span class="card-index">02</span>
-<h3>
-                    Candidates
-                </h3>
-<p>
-                    Manage election candidates
-                </p>
-<span class="card-arrow">↗</span></button>
-<button class="dashboard-card" id="voters-btn" type="button"><span class="card-index">03</span>
-<h3>
-                    Voters
-                </h3>
-<p>
-                    Manage eligible voters
-                </p>
-<span class="card-arrow">↗</span></button>
-<button class="dashboard-card" id="results-btn" type="button"><span class="card-index">04</span>
-<h3>
-                    Results
-                </h3>
-<p>
-                    View live and final election results
-                </p>
-<span class="card-arrow">↗</span></button>
-<button class="dashboard-card" id="students-btn" type="button"><span class="card-index">05</span>
-<h3>
-                    Students
-                </h3>
-<p>
-                    Manage the general student database
-                </p>
-<span class="card-arrow">↗</span></button>
-<button class="dashboard-card" id="forms-btn" type="button"><span class="card-index">06</span>
-<h3>
-                    Candidate Applications
-                </h3>
-<p>
-                    Open applications, review applicants and disqualify
-                </p>
-<span class="card-arrow">↗</span></button>
-</div>
-</section>
-<section class="dashboard-section" data-motion="rise" id="super-admin-section" style="display: none;">
-<h2>
-            Super Admin
-        </h2>
-<button class="dashboard-card" id="admin-management-btn" type="button"><span class="card-index">07</span>
-<h3>
-                Admin Management
-            </h3>
-<p>
-                Manage administrators and permissions
-            </p>
-<span class="card-arrow">↗</span></button>
-</section>
+<main class="admin-dashboard editorial-page layout-admin dashboard-page">
+  <section class="page-intro" data-motion="rise">
+    <div class="intro-meta"><p class="eyebrow">ELECTION OPERATIONS</p><span class="intro-rule"></span></div>
+    <h2 class="drop-headline">The work behind every vote.</h2>
+    <p class="intro-copy">Manage student records, election operations and official communications from one workspace.</p>
+  </section>
+  <section class="admin-welcome-card admin-welcome-line" data-motion="rise">
+    <p class="small-label">SIGNED IN AS</p>
+    <h2 id="admin-name">Loading...</h2>
+    <span class="role-badge" id="admin-role">Loading...</span>
+  </section>
+  <section class="dashboard-section" data-motion="rise">
+    <div class="section-heading"><div><p class="eyebrow">01 · ELECTION WORKFLOW</p><h2>Election operations</h2></div></div>
+    <div class="dashboard-grid admin-link-list">
+      <button class="dashboard-card" id="elections-btn" type="button"><span class="card-index">01</span><span class="admin-link-copy"><h3>Elections</h3><p>Create elections and manage their lifecycle.</p></span><span class="card-arrow">↗</span></button>
+      <button class="dashboard-card" id="forms-btn" type="button"><span class="card-index">02</span><span class="admin-link-copy"><h3>Applications and screening</h3><p>Open applications and review candidate eligibility.</p></span><span class="card-arrow">↗</span></button>
+      <button class="dashboard-card" id="candidates-btn" type="button"><span class="card-index">03</span><span class="admin-link-copy"><h3>Candidates</h3><p>Review the candidate list for an election.</p></span><span class="card-arrow">↗</span></button>
+      <button class="dashboard-card" id="voters-btn" type="button"><span class="card-index">04</span><span class="admin-link-copy"><h3>Voter register</h3><p>Manage eligible voters for an election.</p></span><span class="card-arrow">↗</span></button>
+      <button class="dashboard-card" id="results-btn" type="button"><span class="card-index">05</span><span class="admin-link-copy"><h3>Election results</h3><p>Review live outcomes and published results.</p></span><span class="card-arrow">↗</span></button>
+    </div>
+  </section>
+  <section class="dashboard-section" data-motion="rise">
+    <div class="section-heading"><div><p class="eyebrow">02 · RECORDS AND COMMUNICATIONS</p><h2>Students and announcements</h2></div></div>
+    <div class="dashboard-grid admin-link-list">
+      <button class="dashboard-card" id="students-btn" type="button"><span class="card-index">06</span><span class="admin-link-copy"><h3>Student records</h3><p>Manage student profiles and academic levels.</p></span><span class="card-arrow">↗</span></button>
+      <button class="dashboard-card" id="announcements-btn" type="button"><span class="card-index">07</span><span class="admin-link-copy"><h3>Announcements</h3><p>Publish notices and manage official updates.</p></span><span class="card-arrow">↗</span></button>
+    </div>
+  </section>
+  <section class="dashboard-section" data-motion="rise" id="super-admin-section" style="display:none">
+    <div class="section-heading"><div><p class="eyebrow">03 · ACCESS CONTROL</p><h2>Super administrator</h2></div></div>
+    <div class="dashboard-grid admin-link-list">
+      <button class="dashboard-card" id="admin-management-btn" type="button"><span class="card-index">08</span><span class="admin-link-copy"><h3>Administrator management</h3><p>Manage administrator invitations and permissions.</p></span><span class="card-arrow">↗</span></button>
+    </div>
+  </section>
 </main>
 <footer>
 <p>
@@ -118,6 +65,7 @@
 </footer>
 <script src="admin.js" type="module">
 </script>
-<script defer="True" src="motion.js"></script><script>document.getElementById("announcements-btn").addEventListener("click",function(){location.href="admin-announcements.html"});</script>
+<script defer="True" src="motion.js"></script>
+<script src="theme.js" type="module"></script>
 </body>
 </html>

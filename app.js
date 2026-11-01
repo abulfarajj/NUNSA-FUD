@@ -345,7 +345,7 @@ async function openStudentDashboard(result) {
         result.profilePicture || ""
     );
 
-    window.location.href = (function(d){try{var n=localStorage.getItem("nunsaNext");if(n&&/^\/(a\/[A-Za-z0-9_-]+|announcements\.html(\?id=[A-Za-z0-9_-]+)?)$/.test(n)){localStorage.removeItem("nunsaNext");return n;}}catch(e){}return d;})("student-dashboard.html");
+    window.location.href = (function(d){try{var n=localStorage.getItem("nunsaNext");if(n&&/^\/(a\/[A-Za-z0-9_-]+|announcements\.html(\?id=[A-Za-z0-9_-]+)?|candidate\.html\?electionId=[A-Za-z0-9_-]+&id=[A-Za-z0-9_-]+|candidate-directory\.html\?electionId=[A-Za-z0-9_-]+|results\.html\?id=[A-Za-z0-9_-]+|student-receipts\.html|student-results\.html|voter-portal\.html|voting\.html\?electionId=[A-Za-z0-9_-]+)$/.test(n)){localStorage.removeItem("nunsaNext");return n;}}catch(e){}return d;})("student-dashboard.html");
 }
 
 loginBtn.addEventListener("click", () => {
