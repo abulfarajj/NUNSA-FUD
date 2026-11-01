@@ -963,3 +963,152 @@ footer{font-size:.8rem;border-top:1px solid var(--border);margin-top:8px}
 .forms-status-paid{color:var(--success)}
 .forms-status-disqualified{color:#b3261e}
 .forms-status-pending_payment,.forms-status-paid_late{color:var(--warning)}
+
+
+/* =========================================================
+   UI REFRESH: same teal, plus mint / gold / sky accents.
+   CSS only (no HTML or script changes). To undo: delete from
+   this comment to the end of the file.
+   ========================================================= */
+:root{
+  --gold:#d6a24a; --gold-dark:#8f6516; --gold-soft:#fbf1dc;
+  --mint:#7cc4ae; --mint-dark:#2c7a67; --mint-soft:#e3f4ee;
+  --sky:#6b9fc9; --sky-dark:#35669c; --sky-soft:#e8f0fa;
+  --blush:#f7e5dd; --coral:#c2603f;
+  --bg:#f7f6f0;
+  --shadow-sm:0 1px 2px rgba(12,43,49,.05),0 8px 22px rgba(12,43,49,.06);
+  --shadow-md:0 2px 4px rgba(12,43,49,.06),0 16px 36px rgba(12,43,49,.11);
+  --grad-primary:linear-gradient(180deg,#5d9da7 0%,#4f8f9a 100%);
+  --grad-ink:linear-gradient(135deg,#0c2b31,#184f59);
+  --ring:0 0 0 4px rgba(79,143,154,.18);
+}
+::selection{background:var(--mint-soft);color:#0c2b31}
+
+/* soft atmosphere behind everything */
+body{background:var(--bg)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(60vmax 40vmax at -8% -6%,rgba(124,196,174,.26),transparent 60%),
+  radial-gradient(50vmax 36vmax at 108% 4%,rgba(214,162,74,.15),transparent 58%),
+  radial-gradient(70vmax 50vmax at 50% 112%,rgba(79,143,154,.15),transparent 62%)}
+
+/* top bar: frosted glass with a three-colour hairline */
+.editorial-topbar.site-header,.editorial-topbar.admin-header{
+  background:linear-gradient(90deg,var(--primary),var(--mint) 55%,var(--gold)) bottom/100% 2px no-repeat,
+             linear-gradient(180deg,rgba(255,255,255,.95),rgba(250,249,244,.9));
+  -webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);
+  border-bottom:0;box-shadow:0 10px 28px rgba(12,43,49,.05)}
+.association-logo,.admin-logo{background:#fff;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--primary-light),0 6px 16px rgba(12,43,49,.14)}
+
+/* page intro: last word picks up the primary colour */
+.page-intro .drop-headline .drop-word:last-child{color:var(--primary-dark)}
+.page-intro .intro-copy{color:#5d6b6e}
+.small-label,.intro-meta{color:var(--primary-dark)}
+
+/* cards: lifted, with a coloured top edge on the main blocks */
+.welcome-card,.admin-card,.admin-welcome-card,.dashboard-section,.login-card,.page-container .card,.profile-card,.container>.card,.admin-container>.admin-card{
+  border:1px solid rgba(12,43,49,.07);box-shadow:var(--shadow-sm);border-radius:20px}
+main>.welcome-card,main>.admin-card,main>.admin-welcome-card,main>.dashboard-section,main .login-card,.container>.card,.admin-container>.admin-card{
+  background:linear-gradient(90deg,var(--primary),var(--mint) 60%,var(--gold)) top/100% 3px no-repeat,#fff}
+.dashboard-section>h2:first-child,.dashboard-section>.section-header h2{display:flex;align-items:center;gap:10px}
+.dashboard-section>h2:first-child::before,.dashboard-section>.section-header h2::before{content:"";flex:0 0 auto;width:6px;height:1.1em;border-radius:4px;background:linear-gradient(180deg,var(--primary),var(--mint))}
+
+/* dashboard tiles: coloured number chips, soft corner glow, lift on hover */
+.dashboard-card,.admin-dashboard-card,.student-dashboard-option{
+  position:relative;overflow:hidden;text-align:left;background:#fff;border:1px solid rgba(12,43,49,.08);
+  box-shadow:var(--shadow-sm);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;
+  --chip-bg:var(--primary-soft);--chip-fg:var(--primary-dark);--tint:rgba(79,143,154,.2)}
+.dashboard-card::after,.student-dashboard-option::after{content:"";position:absolute;right:-36px;top:-36px;width:130px;height:130px;border-radius:50%;
+  background:radial-gradient(circle,var(--tint),transparent 68%);pointer-events:none}
+.dashboard-card:hover,.admin-dashboard-card:hover,.student-dashboard-option:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--primary-light)}
+.dashboard-card:active{transform:translateY(0)}
+.dashboard-card:nth-of-type(6n+2){--chip-bg:var(--mint-soft);--chip-fg:var(--mint-dark);--tint:rgba(124,196,174,.3)}
+.dashboard-card:nth-of-type(6n+3){--chip-bg:var(--gold-soft);--chip-fg:var(--gold-dark);--tint:rgba(214,162,74,.28)}
+.dashboard-card:nth-of-type(6n+4){--chip-bg:var(--sky-soft);--chip-fg:var(--sky-dark);--tint:rgba(107,159,201,.26)}
+.dashboard-card:nth-of-type(6n+5){--chip-bg:var(--blush);--chip-fg:var(--coral);--tint:rgba(194,96,63,.18)}
+.dashboard-card .card-index{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:30px;padding:0 11px;border-radius:999px;
+  background:var(--chip-bg);color:var(--chip-fg);font-family:var(--mono);font-size:.74rem;font-weight:700;letter-spacing:.06em;margin-bottom:12px}
+.dashboard-card h3{font-size:1.12rem;font-weight:700;color:var(--ink)}
+.dashboard-card .card-arrow{color:var(--chip-fg);transition:transform .2s ease}
+.dashboard-card:hover .card-arrow{transform:translate(3px,-3px)}
+
+/* buttons: primary keeps the same teal, now with depth */
+.vote-button,.login-button,button[type=submit],.primary-btn,.add-btn,.lookup-btn{
+  background:var(--grad-primary);color:#fff;border:0;text-shadow:0 1px 0 rgba(0,0,0,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 8px 18px rgba(61,120,130,.26);
+  transition:transform .15s ease,box-shadow .15s ease,filter .15s ease}
+.vote-button:hover,.login-button:hover,button[type=submit]:hover,.primary-btn:hover,.add-btn:hover,.lookup-btn:hover{
+  background:var(--grad-primary);filter:brightness(1.06);transform:translateY(-1px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 12px 24px rgba(61,120,130,.34)}
+.vote-button:active,.login-button:active,button[type=submit]:active{transform:translateY(1px) scale(.99);filter:brightness(.97)}
+.vote-button:disabled,.login-button:disabled,button[type=submit]:disabled{background:#cdd9d9;box-shadow:none;filter:none;transform:none;cursor:not-allowed;text-shadow:none}
+#signup-btn{background:var(--grad-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 8px 18px rgba(12,43,49,.26)}
+#signup-btn:hover{background:var(--grad-ink)}
+.secondary-btn,.back-btn,#back-btn,#cancel-confirmation-btn,#cancel-vote-btn{border:1.5px solid #d7dfdc;box-shadow:0 1px 2px rgba(12,43,49,.04)}
+.secondary-btn:hover,.back-btn:hover,#back-btn:hover,#cancel-confirmation-btn:hover{background:var(--primary-soft);border-color:var(--primary-light)}
+
+/* inputs */
+input[type=text],input[type=password],input[type=email],input[type=number],input[type=search],input[type=date],input[type=datetime-local],input[type=tel],select,textarea{
+  background:#fff;border:1.5px solid #dbe3e0;border-radius:12px;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
+input:hover,select:hover,textarea:hover{border-color:var(--primary-light)}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:var(--ring);background:#fcfffe}
+::placeholder{color:#9aa8aa}
+label{color:#2a4349}
+.pin-box{border:1.5px solid #d3dedc;border-radius:14px;box-shadow:inset 0 1px 2px rgba(12,43,49,.04);transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.pin-box:focus{border-color:var(--primary);box-shadow:var(--ring);transform:translateY(-1px)}
+
+/* status chips */
+.role-badge,.status-badge,.voter-status{display:inline-flex;align-items:center;gap:7px;border-radius:999px;font-weight:700}
+.role-badge::before,.status-badge::before,.voter-status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.85}
+.status-active{background:var(--mint-soft);color:var(--mint-dark)}
+.status-draft{background:var(--gold-soft);color:var(--gold-dark)}
+.status-upcoming{background:var(--sky-soft);color:var(--sky-dark)}
+.status-ended{background:#ecefee;color:#56656a}
+.status-error{background:var(--blush);color:var(--coral)}
+
+/* messages */
+.alert,.message{border-radius:12px}
+.alert-success{background:var(--mint-soft);border-color:#bfe3d6;color:#1f5f4e}
+.alert-warning{background:var(--gold-soft);border-color:#f0d9a8;color:#7b5612}
+.alert-error{background:var(--blush);border-color:#efc5b6;color:#9a3f24}
+.alert-info{background:var(--sky-soft);border-color:#c5d8ee;color:#2c5585}
+
+/* tables */
+.admin-table{border-collapse:separate;border-spacing:0;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px rgba(12,43,49,.07)}
+.admin-table th{background:var(--grad-ink)}
+.admin-table tbody tr:nth-child(even){background:#f8faf8}
+.admin-table tbody tr:hover{background:var(--mint-soft)}
+
+/* voting */
+.candidate-option{background:#fff;border:1.5px solid #e1e7e4;box-shadow:0 1px 2px rgba(12,43,49,.04);transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.candidate-option:hover{border-color:var(--primary-light);box-shadow:var(--shadow-sm)}
+.candidate-option.selected{background:linear-gradient(90deg,var(--mint-soft),#fff 70%);border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,143,154,.14)}
+.candidate-option img{border:2px solid #fff;box-shadow:0 0 0 2px var(--primary-light)}
+.vote-progress-track span{background:linear-gradient(90deg,var(--primary),var(--mint))}
+.vote-progress.complete .vote-progress-track span{background:linear-gradient(90deg,var(--mint),var(--mint-dark))}
+.receipt-check{background:linear-gradient(135deg,var(--mint-soft),#fff);color:var(--mint-dark);box-shadow:0 0 0 6px rgba(124,196,174,.18)}
+.receipt-meta{background:linear-gradient(180deg,#f7f8f3,#f2f5f1)}
+.receipt-code{background:var(--gold-soft);color:var(--gold-dark);padding:2px 8px;border-radius:8px}
+
+/* results */
+.result-card{background:#fff;border:1px solid rgba(12,43,49,.07);border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
+.result-bar{height:10px;background:#e7eeec;border-radius:999px;overflow:hidden}
+.result-bar-fill{background:linear-gradient(90deg,var(--primary),var(--mint));border-radius:999px}
+.position-summary{background:linear-gradient(135deg,var(--primary-soft),var(--mint-soft))}
+.position-results>h2,.position-results>h3{color:var(--ink)}
+
+/* candidate applications (admin + student) */
+.forms-card{border:1px solid rgba(12,43,49,.08);border-left:4px solid var(--primary-light);box-shadow:var(--shadow-sm)}
+.forms-status-applied{color:var(--mint-dark)}
+.forms-status-disqualified{color:var(--coral)}
+.forms-input{border:1.5px solid #dbe3e0}
+.forms-ghost{border:1.5px solid #d7dfdc;background:#fff}
+.forms-ghost:hover:not(:disabled){background:var(--primary-soft)}
+
+/* footer + small touches */
+footer{border-top:0;background:linear-gradient(90deg,var(--primary),var(--mint) 55%,var(--gold)) top/100% 2px no-repeat;color:#6b7678}
+.back-link{color:var(--primary-dark)}
+::-webkit-scrollbar{height:8px;width:8px}
+::-webkit-scrollbar-thumb{background:#c9d8d8;border-radius:8px}
+.auth-panel>.welcome-card,.auth-panel>.login-card,.auth-panel .welcome-card{background:linear-gradient(90deg,var(--primary),var(--mint) 60%,var(--gold)) top/100% 3px no-repeat,#fff}
+.admin-table th{color:#fff}
+.no-overlap{margin-top:0!important}

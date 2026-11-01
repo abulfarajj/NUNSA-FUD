@@ -481,7 +481,7 @@ const ADMIN = "admin1|admin@nunsa.org";
         await say(CHAT, "123456"); ok(!lastText().startsWith("E-mail verified"), "wrong code accepted");
         await say(CHAT, code); ok(lastText().startsWith("E-mail verified"), lastText());
         await say(CHAT, "4821"); await say(CHAT, "9999"); ok(lastText().includes("did not match"));
-        await say(CHAT, "4821"); await say(CHAT, "4821"); ok(lastText().includes("/login"), lastText());
+        await say(CHAT, "4821"); await say(CHAT, "4821"); ok(lastText().includes("account is ready") && buttonsOfLast().some(b => b.data === "m:login"), lastText());
         ok(store.has("studentAccounts/" + DOC_ID), "account not created");
         await logIn(CHAT); ok(lastText().startsWith("Logged in"));
     });
@@ -539,17 +539,62 @@ const ADMIN = "admin1|admin@nunsa.org";
         await say(CHAT, "/mystatus"); ok(lastText().includes("disqualified") && lastText().includes("Not 300 level"), lastText());
         await press(CHAT, "apy"); ok(lastText().includes("expired"), "stale apply button worked");
     });
-    await test("bot: results appear only for ended elections", async () => {
+    await test("bot: /results asks which election first; open elections show no results; ended ones do", async () => {
         seedStudent({ withAccount: true }); seedElection({ id: "E7" }); // own id: results are cached 10 s per election
-        await logIn(CHAT); await say(CHAT, "/results"); ok(lastText().includes("No election has finished"), lastText());
+        await logIn(CHAT); await say(CHAT, "/results");
+        ok(lastText().includes("Which election"), lastText());
+        ok(buttonsOfLast().some(b => b.text.includes("NUNSA 2026") && b.text.includes("open")), "no election button");
+        await press(CHAT, "rs:0"); ok(lastText().includes("still open"), lastText());
         store.set("elections/E7", { ...store.get("elections/E7"), startAt: Timestamp.fromMillis(Date.now() - 7200e3), endAt: Timestamp.fromMillis(Date.now() - 3600e3) });
         store.set("ballots/b1", { electionId: "E7", selections: [{ position: "President", candidateId: "c1" }, { position: "Secretary", candidateId: "c3" }] });
         store.set("ballots/b2", { electionId: "E7", selections: [{ position: "President", candidateId: "c1" }, { position: "Secretary", candidateId: "c4" }] });
         store.set("votes/E7_A", { electionId: "E7", matricNumber: "A/1", authUid: "a" });
         store.set("votes/E7_B", { electionId: "E7", matricNumber: "B/1", authUid: "b" });
-        await say(CHAT, "/results");
+        await say(CHAT, "/results"); ok(buttonsOfLast().some(b => b.text.includes("ended")));
+        await press(CHAT, "rs:0");
         ok(lastText().includes("President") && lastText().includes("Ada: 2 (100%)"), lastText());
         ok(!lastText().includes("FUD") && !lastText().includes("A/1"), "voter data in results");
+        await press(CHAT, "rs:0"); // second press of an old button still works only from a fresh picker; stale keyboard is removed
+        ok(tgCalls.some(c => c.method === "editMessageReplyMarkup"), "buttons not cleared after a tap");
+    });
+    await test("bot: /candidates asks which election, then shows only that election's candidates", async () => {
+        seedStudent({ withAccount: true }); seedElection();
+        store.set("elections/E8", { title: "Faculty Poll", status: "published", startAt: Timestamp.fromMillis(Date.now() + 86400e3), endAt: Timestamp.fromMillis(Date.now() + 2 * 86400e3) });
+        store.set("candidates/z1", { electionId: "E8", position: "Chair", name: "Zed Musa", status: "active" });
+        await logIn(CHAT); await say(CHAT, "/candidates");
+        ok(lastText().includes("Which election"), lastText());
+        const buttons = buttonsOfLast().filter(b => b.data.startsWith("cl:"));
+        eq(buttons.length, 2, "both elections should be offered");
+        await press(CHAT, buttons.find(b => b.text.startsWith("Faculty Poll")).data);
+        ok(lastText().includes("Zed Musa") && !lastText().includes("Ada"), lastText());
+        await say(CHAT, "/candidates");
+        await press(CHAT, buttonsOfLast().filter(b => b.data.startsWith("cl:")).find(b => b.text.startsWith("NUNSA 2026")).data);
+        ok(lastText().includes("Ada") && !lastText().includes("Zed"), lastText());
+        ok(buttonsOfLast().some(b => b.data === "m:menu"), "no back-to-menu button");
+    });
+    await test("bot: main menu buttons: logged-out and logged-in menus, Open app button, taps act like commands", async () => {
+        seedStudent({ withAccount: true }); seedElection();
+        await say(CHAT, "/start");
+        let labels = buttonsOfLast().map(b => b.text).join("|");
+        ok(/Login/.test(labels) && /Sign up/.test(labels) && /Forgot PIN/.test(labels), labels);
+        ok(!/Vote/.test(labels), "voting buttons shown before login");
+        const appButton = lastSent().payload.reply_markup.inline_keyboard.flat().find(b => b.url);
+        ok(appButton && appButton.url === "https://t.me/nunsafud_bot/voting_app" && /Open app/.test(appButton.text), "no Open app button");
+        ok(!lastSent().payload.reply_markup.inline_keyboard.flat().some(b => b.web_app), "old website button still present");
+        await press(CHAT, "m:vote"); ok(lastText().includes("/login") && buttonsOfLast().some(b => b.data === "m:login"), "menu tap skipped the login check");
+        await press(CHAT, "m:login"); ok(lastText().includes("registration number"), lastText());
+        await say(CHAT, MATRIC); await say(CHAT, PIN);
+        ok(lastText().startsWith("Logged in"), lastText());
+        labels = buttonsOfLast().map(b => b.text).join("|");
+        for (const word of ["Vote", "Candidates", "Results", "Elections", "Apply", "My status", "My vote", "Log out"]) ok(labels.includes(word), word + " missing: " + labels);
+        await press(CHAT, "m:results"); ok(lastText().includes("Which election"), lastText());
+        await say(CHAT, "/menu"); ok(buttonsOfLast().some(b => b.data === "m:vote"));
+        await press(CHAT, "m:logout"); await say(CHAT, "/menu");
+        ok(buttonsOfLast().some(b => b.data === "m:login"), "menu did not switch back after logout");
+        process.env.TELEGRAM_APP_LINK = "https://evil.example/phish";
+        await say(CHAT, "/menu");
+        ok(lastSent().payload.reply_markup.inline_keyboard.flat().find(b => b.url).url === "https://t.me/nunsafud_bot/voting_app", "a non-Telegram link was accepted");
+        delete process.env.TELEGRAM_APP_LINK;
     });
     await test("bot: a repeated Telegram update is processed once; unknown text and commands get a hint", async () => {
         const update = { update_id: 777, message: { message_id: 9, chat: privateChat(CHAT), text: "/help" } };
