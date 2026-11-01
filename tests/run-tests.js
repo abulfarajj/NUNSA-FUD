@@ -453,6 +453,20 @@ const ADMIN = "admin1|admin@nunsa.org";
         await logIn(CHAT, MATRIC, PIN);
         ok(/too many|try again|wait|locked/i.test(lastText()), "lockout not applied to the bot: " + lastText());
     });
+    await test("bot: announcements are browsable without login and open full details with a share link", async () => {
+        store.set("announcements/notice-1", {
+            title: "Candidate debate tonight", body: "Join us at the main lecture hall at 7 pm.",
+            authorName: "Ada Okafor", authorPosition: "President", createdAt: Date.now(), pinned: true
+        });
+        await say(CHAT, "/notices");
+        ok(lastText().includes("Candidate debate tonight"), lastText());
+        ok(buttonsOfLast().some(b => b.data === "an:0"), "announcement detail button missing");
+        ok(buttonsOfLast().some(b => b.text.includes("Open announcements page")), "announcements page link missing");
+        await press(CHAT, "an:0");
+        ok(lastText().includes("Join us at the main lecture hall") && lastText().includes("Ada Okafor · President"), lastText());
+        ok(buttonsOfLast().some(b => b.text === "View full announcement"), "direct announcement link missing");
+        ok(!store.has("telegramLinks/" + DOC_ID), "public announcements unexpectedly required login");
+    });
     await test("bot: commands need a login; /logout unlinks", async () => {
         seedStudent({ withAccount: true });
         for (const command of ["/vote", "/elections", "/apply", "/results", "/myvote", "/mystatus", "/candidates"]) {

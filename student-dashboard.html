@@ -1,102 +1,105 @@
-<!DOCTYPE html>
-
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>NUNSA-FUD Student Dashboard</title>
-<link href="style.css" rel="stylesheet"/>
-<link href="theme.css" rel="stylesheet"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f5f4ef" />
+  <title>Student Home · NUNSA-FUD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="style.css" rel="stylesheet" />
+  <link href="theme.css" rel="stylesheet" />
+  <link href="redesign.css" rel="stylesheet" />
 </head>
-<body class="nunsa-page page-student-dashboard">
-<header class="site-header editorial-topbar"><div class="brand-lockup"><img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/><div class="brand-copy"><h1>NUNSA-FUD</h1><p class="system-title">
-        Student Dashboard
-    </p></div></div>
+<body class="nunsa-page page-student-dashboard student-app">
+  <header class="student-header editorial-topbar">
+    <div class="student-identity">
+      <img id="student-profile-picture" class="student-avatar" src="assets/default-profile.jpg" alt="Student profile picture" />
+      <div class="student-identity-copy">
+        <p class="greeting">Hi, <strong id="student-name">Student</strong></p>
+        <p class="student-meta"><span id="profile-matric">Loading registration number…</span><span aria-hidden="true">·</span><span id="student-level">Level not set</span></p>
+      </div>
+    </div>
+    <div class="student-header-actions">
+      <a class="header-icon-link" href="announcements.html" aria-label="Notifications and announcements" title="Notifications and announcements"><span class="bell-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span></a>
+      <button class="header-icon-button" id="menu-toggle" type="button" aria-label="Open navigation menu" aria-expanded="false"><span aria-hidden="true">☰</span></button>
+    </div>
+    <div class="student-menu" id="student-menu" hidden>
+      <a href="student-dashboard.html">Home</a>
+      <a href="voter-portal.html">Elections</a>
+      <a href="student-dashboard.html#forms-section">Applications</a>
+      <a href="announcements.html">Announcements</a>
+      <a href="student-dashboard.html#profile">My profile</a>
+      <div class="menu-divider"></div>
+      <label for="theme-choice">Appearance</label>
+      <select id="theme-choice" aria-label="Choose appearance">
+        <option value="system">Use device setting</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+      <button id="student-logout-btn" class="menu-logout" type="button">Log out</button>
+    </div>
+  </header>
+
+  <main class="student-home container">
 
 
+    <div id="home-election" aria-live="polite" class="home-dynamic-block">
+      <section class="election-hero election-loading"><p class="eyebrow">CURRENT ELECTION</p><h2>Loading election information…</h2></section>
+    </div>
+    <div id="home-stats" class="home-dynamic-block"></div>
+    <div id="home-timeline" class="home-dynamic-block"></div>
 
-</header>
-<main class="container editorial-page layout-student-dashboard dashboard-page"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">STUDENT SPACE</p><span class="intro-rule"></span></div><h2 aria-label="Your place in the process." class="drop-headline">Your place in the process.</h2><p class="intro-copy">Manage your profile and continue to the voter portal.</p></section>
-<section class="welcome-card" data-motion="rise">
-<h2>
-            Welcome,
-            <span id="student-name">
-                Student
-            </span>
-</h2>
-<p>
-            Manage your profile and access the
-            NUNSA-FUD voter portal.
-        </p>
-</section>
-<section class="welcome-card" data-motion="rise">
-<h2>
-            My Profile
-        </h2>
-<div class="student-profile">
-<div class="profile-picture-area">
-<img alt="Student Profile Picture" class="student-profile-picture" id="student-profile-picture" src="assets/default-profile.jpg"/>
-<label class="login-button" for="profile-picture-input">
-                    CHANGE PROFILE PICTURE
-                </label>
-<input accept="image/*" id="profile-picture-input" style="display:none;" type="file"/>
-<p id="profile-picture-message"></p>
-</div>
-<div class="student-profile-details">
-<p>
-<strong>Name:</strong>
-<span id="profile-name">
-                        Loading...
-                    </span>
-</p>
-<p>
-<strong>Registration Number:</strong>
-<span id="profile-matric">
-                        Loading...
-                    </span>
-</p>
-</div>
-</div>
-</section>
-<div id="home-extras"></div>
-<section class="welcome-card" data-motion="rise">
-<h2>
-            Voter Portal
-        </h2>
-<p>
-            View available elections, candidates,
-            live results and election outcomes.
-        </p>
-<button class="vote-button" id="voter-portal-btn" type="button">
-            OPEN VOTER PORTAL
-        </button>
-</section>
-<section class="welcome-card" data-motion="rise" id="forms-section" style="display:none;">
-<h2>
-            Run for a Position
-        </h2>
-<p id="forms-intro">
-            Want to run for a position? Apply here when applications are open.
-        </p>
-<div id="forms-applications"></div>
-<div id="forms-offers"></div>
-<p id="forms-feedback"></p>
-</section>
-<section class="welcome-card" data-motion="rise" id="student-message-section" style="display:none;">
-<p id="student-dashboard-message"></p>
-</section>
-<div class="admin-access">
-<button id="student-logout-btn" type="button">
-            LOG OUT
-        </button>
-</div>
-</main>
-<footer>
-<p>
-        NUNSA-FUD Electronic Voting System
-    </p>
-</footer>
-<script src="student-dashboard.js" type="module"></script>
-<script src="home.js" type="module"></script>
-<script defer="True" src="motion.js"></script></body>
+    <section class="home-section quick-section">
+      <div class="section-heading"><div><p class="eyebrow">GET THINGS DONE</p><h2>Quick actions</h2></div></div>
+      <nav class="quick-links" aria-label="Quick actions">
+        <a href="voter-portal.html"><span class="quick-icon icon-teal">◉</span><strong>Vote</strong><small>Open elections</small></a>
+        <a href="candidate-directory.html"><span class="quick-icon icon-mint">♧</span><strong>Candidates</strong><small>Meet the candidates</small></a>
+        <a href="#forms-section"><span class="quick-icon icon-gold">▤</span><strong>Apply</strong><small>Run for a position</small></a>
+        <a href="student-results.html"><span class="quick-icon icon-sky">▥</span><strong>Results</strong><small>View outcomes</small></a>
+        <a href="student-receipts.html"><span class="quick-icon icon-coral">▧</span><strong>My receipt</strong><small>Voting record</small></a>
+        <a href="https://t.me/NUNSAFUDVotingBot" target="_blank" rel="noopener"><span class="quick-icon icon-teal">➤</span><strong>Telegram bot</strong><small>Use Telegram</small></a>
+      </nav>
+    </section>
+
+    <div id="home-candidates" class="home-dynamic-block"></div>
+    <div id="home-announcements" class="home-dynamic-block"></div>
+    <div id="home-status" class="home-dynamic-block"></div>
+
+    <section class="home-section profile-section" id="profile">
+      <div class="section-heading"><div><p class="eyebrow">YOUR ACCOUNT</p><h2>My profile</h2></div></div>
+      <div class="profile-editor">
+        <div class="profile-image-control">
+          <img class="profile-large-avatar" src="assets/default-profile.jpg" id="profile-avatar-secondary" alt="Your profile picture" />
+          <label class="profile-upload-link" for="profile-picture-input">Change picture</label>
+          <input accept="image/*" id="profile-picture-input" type="file" hidden />
+        </div>
+        <div class="profile-data">
+          <p><span>Full name</span><strong id="profile-name">Loading…</strong></p>
+          <p><span>Matriculation number</span><strong id="profile-matric-secondary">Loading…</strong></p>
+          <p><span>Academic level</span><strong id="profile-level-secondary">Not provided</strong></p>
+          <p id="profile-picture-message" class="inline-message" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section application-section" id="forms-section" hidden>
+      <div class="section-heading"><div><p class="eyebrow">CANDIDATE APPLICATIONS</p><h2>Run for a position</h2></div></div>
+      <p id="forms-intro" class="section-description">Apply for an available position when applications are open.</p>
+      <div id="forms-applications"></div>
+      <div id="forms-offers"></div>
+      <p id="forms-feedback" class="inline-message"></p>
+    </section>
+
+    <section id="student-message-section" class="home-message" hidden><p id="student-dashboard-message"></p></section>
+    <button id="voter-portal-btn" type="button" class="visually-hidden">Open elections</button>
+  </main>
+  <footer class="site-footer"><p>NUNSA-FUD Electronic Voting System</p></footer>
+
+  <script src="student-dashboard.js" type="module"></script>
+  <script src="home.js" type="module"></script>
+  <script src="theme.js" type="module"></script>
+  <script src="student-nav.js" type="module"></script>
+</body>
 </html>

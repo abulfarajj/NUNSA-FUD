@@ -65,6 +65,8 @@ const electionStart =
 
 const electionEnd =
     document.getElementById("election-end");
+const electionTermEnd =
+    document.getElementById("election-term-end");
 
 const electionMessage =
     document.getElementById("election-message");
@@ -208,6 +210,8 @@ createElectionForm.addEventListener(
 
         const end =
             electionEnd.value;
+        const termEnd =
+            electionTermEnd?.value || "";
 
         if (
             !title ||
@@ -231,10 +235,12 @@ createElectionForm.addEventListener(
 
         const endDate =
             new Date(end);
+        const termEndDate = termEnd ? new Date(termEnd) : null;
 
         if (
             isNaN(startDate.getTime()) ||
-            isNaN(endDate.getTime())
+            isNaN(endDate.getTime()) ||
+            (termEndDate && isNaN(termEndDate.getTime()))
         ) {
 
             electionMessage.textContent =
@@ -259,6 +265,12 @@ createElectionForm.addEventListener(
 
             return;
 
+        }
+
+        if (termEndDate && termEndDate <= endDate) {
+            electionMessage.textContent = "The tenure end must be after the voting end date.";
+            electionMessage.style.color = "#c0392b";
+            return;
         }
 
         try {
@@ -288,6 +300,8 @@ createElectionForm.addEventListener(
 
                         endAt:
                             endDate,
+
+                        ...(termEndDate ? { termEndsAt: termEndDate } : {}),
 
                         status:
                             "draft",
@@ -828,12 +842,29 @@ async function editElection(election) {
        CONVERT DATES
     --------------------------------------------- */
 
+    const newTermEnd = prompt(
+        "Enter the elected officers' tenure end date and time. Leave blank if it has not been determined.\n\nFormat:\nYYYY-MM-DD HH:MM",
+        formatDateForInput(getDate(election.termEndsAt))
+    );
+    if (newTermEnd === null) return;
+
     const startDate =
         parseDateInput(newStart);
 
     const endDate =
         parseDateInput(newEnd);
 
+    const termEndDate = newTermEnd.trim() ? parseDateInput(newTermEnd) : null;
+
+    if (newTermEnd.trim() && !termEndDate) {
+        alert("Invalid tenure end date. Use YYYY-MM-DD HH:MM, or leave it blank.");
+        return;
+    }
+
+    if (termEndDate && endDate && termEndDate <= endDate) {
+        alert("The officers' tenure must end after the voting period ends.");
+        return;
+    }
 
     if (
         !startDate ||
@@ -906,6 +937,9 @@ async function editElection(election) {
 
                 endAt:
                     endDate,
+
+                termEndsAt:
+                    termEndDate || null,
 
                 updatedAt:
                     serverTimestamp()
@@ -1042,7 +1076,7 @@ function parseDateInput(value) {
 
 
     const cleaned =
-        value.trim();
+        value.trim().replace("T", " ");
 
 
     const match =

@@ -57,17 +57,26 @@ async function officesFor(student) {
         const pos = (res.positions || []).find(p => p.position === cd.position);
         const top = pos && pos.candidates && pos.candidates[0], second = pos && pos.candidates && pos.candidates[1];
         if (!top || top.id !== c.id || !(top.votes > 0) || (second && second.votes === top.votes)) continue;
-        out.push({ position: cd.position, electionId: cd.electionId, electionTitle: String(res.title || ""), since: ms(res.finalizedAt) });
+        const electionSnap = await db.collection("elections").doc(cd.electionId).get();
+        const election = electionSnap.exists ? electionSnap.data() : {};
+        const termEnd = ms(election.termEndsAt || res.termEndsAt);
+        if (termEnd && Date.now() >= termEnd) continue;
+        out.push({ position: cd.position, electionId: cd.electionId, electionTitle: String(res.title || election.title || ""), since: ms(res.finalizedAt), termEndsAt: termEnd || null });
     }
     out.sort((a, b) => b.since - a.since);
     const seen = new Set();
     return out.filter(o => !seen.has(o.position) && seen.add(o.position));
 }
 
-const ms = v => (v && v.toMillis ? v.toMillis() : 0);
+const ms = v => (v && v.toMillis ? v.toMillis() : (v instanceof Date ? v.getTime() : (typeof v === "number" ? v : (v ? new Date(v).getTime() || 0 : 0))));
 function shape(id, d, withImage, canEditAll, uid) {
+    // Compatibility: older announcements stored the office in authorName and
+    // the real person's name in createdByName. New records store both explicitly.
+    const legacyOffice = !d.authorPosition && d.createdByName && d.authorName !== d.createdByName;
     return {
-        id, title: d.title || "", body: d.body || "", authorName: d.authorName || "",
+        id, title: d.title || "", body: d.body || "",
+        authorName: d.authorName && !legacyOffice ? d.authorName : (d.createdByName || d.authorName || "NUNSA-FUD"),
+        authorPosition: d.authorPosition || (legacyOffice ? d.authorName : ""),
         canEdit: canEditAll || d.createdBy === uid,
         pinned: d.pinned === true, hasImage: !!d.image, image: withImage ? (d.image || "") : undefined,
         createdAt: ms(d.createdAt), updatedAt: ms(d.updatedAt)
@@ -116,21 +125,22 @@ exports.handler = async function (event) {
 
         if (body.action === "create" || body.action === "update") {
             const title = clean(body.title, 120), text = clean(body.body, 4000);
-            let author = clean(body.authorName, 60);
-            if (!isAdmin) { // office holders post as a position they actually won
-                const mine = offices.find(o => o.position === author);
+            let authorName = isAdmin ? clean(body.authorName, 80) : clean(who.student.name, 80);
+            let authorPosition = clean(body.authorPosition, 80);
+            if (!isAdmin) { // an elected student may publish only under an office they actually won
+                const mine = offices.find(o => o.position === authorPosition);
                 if (!mine) return fail(403, "Choose one of the positions you hold.");
-                author = mine.position;
+                authorPosition = mine.position;
             }
             const image = validImage(body.image);
             if (!title) return fail(400, "Please add a title.");
-            if (!author) return fail(400, "Please say who is posting (e.g. President).");
+            if (!authorName) return fail(400, "Please enter the name of the person making this announcement.");
+            if (!authorPosition) return fail(400, "Please enter the official position or role.");
             if (!text && !image) return fail(400, "Add some text or an image.");
             if (image === null) return fail(400, "That image is too large or not a valid image.");
-            const data = { title, body: text, authorName: author, image: image || "", pinned: isAdmin && body.pinned === true, updatedAt: now };
-            if (!isAdmin) delete data.pinned; // office holders cannot pin
+            const data = { title, body: text, authorName, authorPosition, image: image || "", pinned: isAdmin && body.pinned === true, updatedAt: now };
             if (body.action === "create") {
-                data.createdAt = now; data.createdBy = who.uid; data.createdByName = String(who.student ? who.student.name : who.name || "").slice(0, 80); data.pinned = isAdmin && body.pinned === true;
+                data.createdAt = now; data.createdBy = who.uid; data.createdByName = authorName;
                 const ref = await col.add(data);
                 return jsonResponse(200, { success: true, id: ref.id, message: "Announcement posted." });
             }
