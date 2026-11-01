@@ -253,8 +253,8 @@ onAuthStateChanged(
             }
 
             if (!electionId) {
-
-                showPageError(
+            window.location.replace("elections.html?next=candidates.html");
+            showPageError(
                     "No election was selected."
                 );
 

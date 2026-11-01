@@ -542,10 +542,9 @@ function createElectionCard(election) {
         "click",
         () => {
 
-            window.location.href =
-                `manage-election.html?id=${encodeURIComponent(
-                    election.id
-                )}`;
+            const nextPage = new URLSearchParams(window.location.search).get("next");
+            const target = ["candidates.html", "voters.html"].includes(nextPage) ? nextPage : "manage-election.html";
+            window.location.href = `${target}?id=${encodeURIComponent(election.id)}`;
 
         }
     );

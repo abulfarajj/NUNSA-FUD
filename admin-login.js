@@ -93,7 +93,7 @@ loginForm.addEventListener("submit", async (event) => {
         loginMessage.textContent = "Login successful. Opening dashboard...";
 
         setTimeout(() => {
-            window.location.href = "admin.html";
+            window.location.href = (function(d){try{var n=localStorage.getItem("nunsaNext");if(n&&/^\/(a\/[A-Za-z0-9_-]+|announcements\.html(\?id=[A-Za-z0-9_-]+)?)$/.test(n)){localStorage.removeItem("nunsaNext");return n;}}catch(e){}return d;})("admin.html");
         }, 400);
 
     } catch (error) {

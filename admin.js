@@ -48,13 +48,13 @@ window.location.href = "elections.html"; }
 
 candidatesBtn.addEventListener( "click", () => {
 
-window.location.href = "candidates.html"; } 
+window.location.href = "elections.html?next=candidates.html"; } 
 
 );
 
 votersBtn.addEventListener( "click", () => {
 
-window.location.href = "elections.html"; } 
+window.location.href = "elections.html?next=voters.html"; } 
 
 );
 

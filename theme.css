@@ -1,0 +1,63 @@
+/* NUNSA-FUD theme layer v2 — flat, ordered, light/dark. Loaded AFTER style.css. */
+:root{color-scheme:light dark;--r:10px;--r-sm:8px;--shadow:none;--surface:#fff;--surface-2:#f1f4f4;--line:#dfe5e5;--accent:#c9962b}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#0d1517;--white:#0d1517;--surface:#142024;--surface-2:#1a2a2f;--text:#e8eff0;--muted:#92a5a9;--border:#26373b;--line:#26373b;
+  --primary:#6fb0ba;--primary-dark:#8cc6cf;--primary-light:#3b6a72;--primary-soft:#173037;--ink:#091012;--ink-2:#10222a;
+  --success:#5cc08a;--success-soft:#12301f;--danger:#e5807f;--danger-soft:#341a1a;--warning:#e0b15a;--warning-soft:#33290f;--info:#7aa7e0;--info-soft:#14233a}}
+body{background:var(--bg);color:var(--text)}
+
+/* header: flat, edge to edge, one hairline */
+.site-header,.admin-header,.editorial-topbar{background:var(--ink);border-radius:0;padding:14px 18px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:3px solid var(--accent)}
+.site-header .brand-lockup,.admin-header-left{display:flex;align-items:center;gap:12px}
+.association-logo,.admin-logo{width:40px!important;height:40px!important;margin:0!important;box-shadow:none}
+.site-header h1,.admin-header h1{font-size:1.05rem!important;margin:0;color:#fff}
+.system-title,.admin-header p{font-size:.68rem;margin:0;color:var(--primary-light);color:#a8cbd0}
+.logout-button{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:var(--r-sm);padding:7px 14px}
+
+/* kill the card look: sections become flat blocks split by hairlines */
+.welcome-card,.admin-card,.admin-welcome-card,.dashboard-section,.login-card,.page-container .card,.profile-card,.status-box,.summary-card{
+  background:transparent!important;border:0!important;border-top:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important;padding:22px 0!important;margin:0!important;text-align:left}
+.welcome-card h2,.dashboard-section h2{font-size:1.15rem}
+.login-card{border:1px solid var(--line)!important;border-radius:var(--r)!important;padding:22px!important}
+.small-label,.eyebrow{color:var(--primary-dark)}
+.summary-card{color:var(--text)}.summary-card strong{color:var(--primary-dark);font-size:1.8rem}
+
+/* menu tiles → ordered list rows */
+.dashboard-grid,.admin-dashboard-grid,.student-dashboard-grid{display:block}
+.dashboard-card,.admin-dashboard-card,.student-dashboard-option{background:transparent!important;color:var(--text)!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important;transform:none!important;min-height:0!important;padding:16px 4px!important;flex-direction:row!important;align-items:center!important;gap:14px;width:100%}
+.dashboard-card:hover,.admin-dashboard-card:hover,.student-dashboard-option:hover{background:var(--surface-2)!important}
+.dashboard-card p,.dashboard-card small,.admin-dashboard-card p{color:var(--muted)!important}
+.dashboard-card .card-icon{margin:0;font-size:1.3rem}
+
+/* list items: plain rows, no boxes */
+.candidate-card,.student-card,.student-result-card,.voter-item,.election-card,.result-card,.position-card{background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important;transform:none!important;padding:14px 2px!important}
+.candidate-profile-image,.candidate-card img,.student-card img,.result-card img,.candidate-option img{width:44px!important;height:44px!important;border-width:1px!important}
+.candidate-option{background:transparent;border:1px solid var(--line);border-radius:var(--r)}
+.candidate-option:hover{background:var(--surface-2)}
+.candidate-option.selected{background:var(--primary-soft);border-color:var(--primary);box-shadow:none}
+.result-bar{height:8px;border-radius:4px;background:var(--surface-2)}
+.result-bar-fill{background:var(--primary);border-radius:4px}
+.result-card.winner .result-bar-fill,.winner .result-bar-fill{background:var(--accent)}
+
+/* forms + buttons: dark-mode safe, one radius */
+input[type=text],input[type=password],input[type=email],input[type=number],input[type=search],input[type=date],input[type=datetime-local],input[type=tel],select,textarea,.pin-box{background:var(--surface);color:var(--text);border-color:var(--line);border-radius:var(--r-sm)}
+input:focus,select:focus,textarea:focus{background:var(--surface);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 30%,transparent)}
+input:disabled,textarea:disabled,select:disabled{background:var(--surface-2);color:var(--muted)}
+.vote-button,.login-button,.primary-btn,.add-btn,.admin-status-btn,.form-actions button,.action-buttons button{border-radius:var(--r-sm);box-shadow:none}
+.secondary-btn,.back-btn{background:transparent;color:var(--text);border-color:var(--line);border-radius:var(--r-sm)}
+.secondary-btn:hover,.back-btn:hover{background:var(--surface-2)}
+.message.success{color:var(--success)}.message.error{color:var(--danger)}.message.warning{color:var(--warning)}.message.info{color:var(--primary-dark)}
+.role-badge,.candidate-position{border-radius:6px}
+
+/* readable on desktop, ordered on phone */
+.container{max-width:640px}.admin-dashboard,.admin-container,.page-container{max-width:960px}
+main{padding-top:8px}
+@media(min-width:900px){.dashboard-grid,.admin-dashboard-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:32px}}
+
+/* countdown + announcements (used by next step) */
+.countdown{display:flex;gap:18px;font-variant-numeric:tabular-nums}
+.countdown b{display:block;font-size:1.9rem;font-weight:600;line-height:1}.countdown small{color:var(--muted);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase}
+.notice{border-bottom:1px solid var(--line);padding:14px 0;display:flex;gap:12px;justify-content:space-between}
+.notice .tag{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.notice img{width:72px;height:72px;object-fit:cover;border-radius:var(--r-sm)}
+@supports(padding:max(0px)){body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom)}}
