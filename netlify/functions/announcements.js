@@ -53,7 +53,7 @@ async function officesFor(student) {
             cache[cd.electionId] = r.exists ? r.data() : null;
         }
         const res = cache[cd.electionId];
-        if (!res) continue;
+        if (!res || !res.finalizedAt) continue;
         const pos = (res.positions || []).find(p => p.position === cd.position);
         const top = pos && pos.candidates && pos.candidates[0], second = pos && pos.candidates && pos.candidates[1];
         if (!top || top.id !== c.id || !(top.votes > 0) || (second && second.votes === top.votes)) continue;
