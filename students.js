@@ -945,6 +945,110 @@ studentSearch.addEventListener(
     filterStudents
 );
 
+
+/* =====================================================
+   OFFICIAL STUDENT LIST (one-time import, Super Admin)
+===================================================== */
+function rosterText(tag, text) {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    return node;
+}
+
+async function callRoster(action, confirmWord) {
+    const token = await auth.currentUser.getIdToken();
+    const response = await fetch("/.netlify/functions/import-student-roster", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({ action, confirm: confirmWord })
+    });
+    let result;
+    try { result = await response.json(); } catch { result = { success: false, message: "The server returned an invalid response." }; }
+    if (!response.ok || result.success !== true) {
+        const error = new Error(result.message || "Request failed.");
+        error.details = result;
+        throw error;
+    }
+    return result;
+}
+
+function showRosterPreview(result) {
+    const box = document.getElementById("roster-result");
+    const importButton = document.getElementById("roster-import-btn");
+    box.textContent = "";
+
+    const levels = Object.entries(result.levels || {}).map(([name, count]) => `${name}: ${count}`).join("  |  ");
+    const lines = [
+        result.matchesReferenceCsv
+            ? `Registration numbers match matric-numbers.csv exactly (${result.rosterCount} of ${result.referenceCount}).`
+            : `DO NOT IMPORT: the registration numbers do NOT match matric-numbers.csv.`,
+        levels,
+        `In the database now: ${result.inDatabaseNow}. Will add ${result.willAdd}, update ${result.willUpdate}, remove ${result.willRemove}.`
+    ];
+    if (result.removedWithAccounts) {
+        lines.push(`${result.removedWithAccounts} of the removed students already have a login; those logins will be switched off.`);
+    }
+    lines.forEach(line => box.appendChild(rosterText("p", line)));
+
+    if (result.removedSample && result.removedSample.length) {
+        box.appendChild(rosterText("p", "Example removals: " + result.removedSample.map(s => `${s.matricNumber} ${s.name}`).join("; ")));
+    }
+    if (result.mismatch) {
+        box.appendChild(rosterText("p", "Missing from list: " + (result.mismatch.missingFromRoster || []).join(", ")));
+        box.appendChild(rosterText("p", "Not in CSV: " + (result.mismatch.notInReference || []).join(", ")));
+    }
+
+    if (result.alreadyUsed) {
+        importButton.disabled = true;
+        importButton.textContent = "Already used";
+    } else {
+        importButton.disabled = !result.matchesReferenceCsv;
+        importButton.textContent = "Import now (one time only)";
+    }
+}
+
+async function checkRoster() {
+    const message = document.getElementById("roster-message");
+    message.textContent = "Checking...";
+    try {
+        showRosterPreview(await callRoster("preview"));
+        message.textContent = "";
+    } catch (error) {
+        message.textContent = error.message;
+    }
+}
+
+async function runRosterImport() {
+    const message = document.getElementById("roster-message");
+    const importButton = document.getElementById("roster-import-btn");
+    const typed = prompt(
+        "This REPLACES the student list with the official lists and can only be done ONCE.\n" +
+        "Students not on the official list are removed and their logins switched off.\n\n" +
+        "Type REPLACE to continue:"
+    );
+    if (typed !== "REPLACE") return;
+
+    importButton.disabled = true;
+    message.textContent = "Importing... please wait.";
+    try {
+        const result = await callRoster("import", "REPLACE");
+        message.textContent = result.message;
+        await checkRoster();
+        await loadStudents();
+    } catch (error) {
+        message.textContent = error.message;
+        importButton.disabled = false;
+    }
+}
+
+function initRosterPanel() {
+    if (currentAdminRole !== "super_admin") return;
+    document.getElementById("roster-section").style.display = "block";
+    document.getElementById("roster-check-btn").addEventListener("click", checkRoster);
+    document.getElementById("roster-import-btn").addEventListener("click", runRosterImport);
+    checkRoster();
+}
+
 onAuthStateChanged(
     auth,
     async (user) => {
@@ -961,9 +1065,9 @@ onAuthStateChanged(
                     user
                 );
 
-            currentAdminRole =
+                        currentAdminRole =
                 adminInfo.role;
-
+            initRosterPanel();
             await loadStudents();
 
         } catch (error) {

@@ -9,6 +9,7 @@ const store = new Map(); // "col/doc" or "col/doc/sub/doc" -> data
 class Timestamp {
     constructor(ms) { this._ms = ms; }
     static fromMillis(ms) { return new Timestamp(ms); }
+    static now() { return new Timestamp(Date.now()); }
     toMillis() { return this._ms; }
     toDate() { return new Date(this._ms); }
 }
@@ -81,10 +82,11 @@ function applyWrite(w) {
 }
 
 class Query {
-    constructor(colPath, filters, limitN, order) { this.colPath = colPath; this.filters = filters || []; this.limitN = limitN; this.order = order; }
-    where(field, op, value) { return new Query(this.colPath, this.filters.concat([[field, op, value]]), this.limitN, this.order); }
-    limit(n) { return new Query(this.colPath, this.filters, n, this.order); }
-    orderBy(field, dir) { return new Query(this.colPath, this.filters, this.limitN, [field, dir || "asc"]); }
+    constructor(colPath, filters, limitN, order, fields) { this.colPath = colPath; this.filters = filters || []; this.limitN = limitN; this.order = order; this.fields = fields; }
+    where(field, op, value) { return new Query(this.colPath, this.filters.concat([[field, op, value]]), this.limitN, this.order, this.fields); }
+    select(...fields) { return new Query(this.colPath, this.filters, this.limitN, this.order, fields); }
+    limit(n) { return new Query(this.colPath, this.filters, n, this.order, this.fields); }
+    orderBy(field, dir) { return new Query(this.colPath, this.filters, this.limitN, [field, dir || "asc"], this.fields); }
     _docs() {
         const prefix = this.colPath + "/";
         let out = [];
@@ -105,6 +107,7 @@ class Query {
             out.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * (dir === "desc" ? -1 : 1));
         }
         if (this.limitN) out = out.slice(0, this.limitN);
+        if (this.fields) out = out.map(snap => { const kept = {}; this.fields.forEach(f => { if (snap._d[f] !== undefined) kept[f] = snap._d[f]; }); return new DocSnap(snap.ref, kept); });
         return out;
     }
     async get() { return new QuerySnap(this._docs()); }
@@ -114,6 +117,7 @@ class Query {
 class CollectionRef extends Query {
     constructor(path) { super(path, [], undefined, undefined); this.path = path; }
     doc(id) { return new DocRef(this.path + "/" + (id || randomId())); }
+    async add(data) { const ref = this.doc(); await ref.create(data); return ref; }
 }
 
 class Transaction {

@@ -1,4 +1,4 @@
-import { auth, waitUser, noticesApi, ago, shareNotice, el, backHref } from "/nunsa-client.js";
+import { auth, waitUser, noticesApi, ago, shareNotice, el } from "/nunsa-client.js";
 
 const feed = document.getElementById("feed"), detail = document.getElementById("detail"),
       gate = document.getElementById("gate"), msg = document.getElementById("msg"),
@@ -18,7 +18,11 @@ function meta(a) {
 async function showFeed() {
     const data = await noticesApi();
     if (!data.success) { say(data.message || "Unable to load.", "error"); return; }
-    back.href = "/" + backHref(data.canManage);
+    // Identify students from the signed Firebase token, not tab-scoped storage.
+    // This also works when announcements was opened in a fresh browser tab.
+    const token = await user.getIdTokenResult();
+    const isStudent = typeof token.claims.matricNumber === "string" && !!token.claims.matricNumber;
+    back.href = isStudent ? "/student-dashboard.html" : (data.canManage ? "/admin.html" : "/index.html");
     feed.replaceChildren();
 
     const top = el("div", "announcement-feed-heading");
@@ -42,7 +46,7 @@ async function showFeed() {
             !term || [a.title, a.body, a.authorName, a.authorPosition].some(v => String(v || "").toLocaleLowerCase().includes(term))
         );
         list.replaceChildren();
-        if (!items.length) { list.append(el("p", "empty-note", term ? "No announcements match your search." : "Nothing posted yet.")); return; }
+        if (!items.length) { list.append(el("p", "empty-note", term ? "No announcements match your search." : "No announcements yet.")); return; }
         for (const a of items) {
             const row = el("div", "announcement-feed-row");
             const link = el("a", "announcement-feed-link"); link.href = "/a/" + encodeURIComponent(a.id);

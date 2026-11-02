@@ -18,7 +18,7 @@ if (!document.querySelector(".student-bottom-nav")) {
   nav.setAttribute("aria-label", "Student navigation");
   tabs.forEach(tab => {
     const a = document.createElement("a");
-    a.href = tab.href;
+    a.href = "/" + tab.href; // absolute: the share page lives at /a/<id>, where relative links would break
     if (tab.active) a.setAttribute("aria-current", "page");
     const icon = document.createElement("span");
     icon.className = "tab-icon";
@@ -39,7 +39,7 @@ if (header && !header.querySelector(".student-desktop-nav")) {
   nav.setAttribute("aria-label", "Primary navigation");
   tabs.forEach(tab => {
     const a = document.createElement("a");
-    a.href = tab.href;
+    a.href = "/" + tab.href; // absolute: the share page lives at /a/<id>, where relative links would break
     a.textContent = tab.label;
     if (tab.active) a.setAttribute("aria-current", "page");
     nav.append(a);

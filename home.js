@@ -217,7 +217,11 @@ async function init() {
     ui.timeline.replaceChildren(makeTimeline(stage, labels));
     await renderCandidates(election, overview);
   } else {
-    ui.election.replaceChildren(el("section", "empty-election", "There is no active election or open application period right now."));
+    const emptyHero = el("section", "election-hero election-empty");
+    emptyHero.append(el("p", "eyebrow", "CURRENT ELECTION"));
+    emptyHero.append(el("h2", "", "No active elections"));
+    emptyHero.append(el("p", "election-subtitle", "There are no active elections or open application periods right now. Check back here for the next update."));
+    ui.election.replaceChildren(emptyHero);
     ui.stats.replaceChildren(); ui.timeline.replaceChildren(); ui.candidates.replaceChildren();
   }
   await renderAnnouncements();

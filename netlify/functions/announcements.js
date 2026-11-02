@@ -78,7 +78,7 @@ function shape(id, d, withImage, canEditAll, uid) {
         authorName: d.authorName && !legacyOffice ? d.authorName : (d.createdByName || d.authorName || "NUNSA-FUD"),
         authorPosition: d.authorPosition || (legacyOffice ? d.authorName : ""),
         canEdit: canEditAll || d.createdBy === uid,
-        pinned: d.pinned === true, hasImage: !!d.image, image: withImage ? (d.image || "") : undefined,
+        pinned: d.pinned === true, hasImage: d.hasImage === true || !!d.image, image: withImage ? (d.image || "") : undefined,
         createdAt: ms(d.createdAt), updatedAt: ms(d.updatedAt)
     };
 }
@@ -112,7 +112,9 @@ exports.handler = async function (event) {
                 return jsonResponse(200, { success: true, canManage: isAdmin, canPost, announcement: shape(snap.id, snap.data(), true, isAdmin, who.uid) });
             }
             const limit = Math.min(Number((event.queryStringParameters || {}).limit) || 30, 50);
-            const snap = await col.orderBy("createdAt", "desc").limit(60).get();
+            // select(): the feed never needs the (large) image data, so it is not read at all.
+            const snap = await col.orderBy("createdAt", "desc").limit(60)
+                .select("title", "body", "authorName", "authorPosition", "createdByName", "createdBy", "pinned", "hasImage", "createdAt", "updatedAt").get();
             const items = snap.docs.map(d => shape(d.id, d.data(), false, isAdmin, who.uid))
                 .sort((a, b) => (b.pinned - a.pinned) || (b.createdAt - a.createdAt)).slice(0, limit);
             return jsonResponse(200, { success: true, canManage: isAdmin, canPost, announcements: items });
@@ -138,7 +140,7 @@ exports.handler = async function (event) {
             if (!authorPosition) return fail(400, "Please enter the official position or role.");
             if (!text && !image) return fail(400, "Add some text or an image.");
             if (image === null) return fail(400, "That image is too large or not a valid image.");
-            const data = { title, body: text, authorName, authorPosition, image: image || "", pinned: isAdmin && body.pinned === true, updatedAt: now };
+            const data = { title, body: text, authorName, authorPosition, image: image || "", hasImage: !!image, pinned: isAdmin && body.pinned === true, updatedAt: now };
             if (body.action === "create") {
                 data.createdAt = now; data.createdBy = who.uid; data.createdByName = authorName;
                 const ref = await col.add(data);

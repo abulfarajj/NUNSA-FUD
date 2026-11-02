@@ -11,20 +11,30 @@ export async function initStudentPage() {
     return null;
   }
 
-  const studentDocumentId = sessionStorage.getItem("studentDocumentId");
-  const storedMatric = sessionStorage.getItem("studentMatricNumber");
-  if (!studentDocumentId || !storedMatric) {
-    sessionStorage.clear();
-    await signOut(auth);
+  // sessionStorage is tab-scoped. A student opening a dashboard link in a new
+  // tab still has a valid Firebase session, so recover the student identity
+  // from the signed custom-token claim instead of logging them out.
+  const tokenResult = await user.getIdTokenResult();
+  const claimMatric = String(tokenResult.claims.matricNumber || "").trim().toUpperCase();
+  if (!claimMatric) {
     location.href = "index.html";
     return null;
   }
 
+  const matricDocumentId = claimMatric.replace(/[^A-Z0-9]/g, "_");
+  const storedMatric = sessionStorage.getItem("studentMatricNumber");
+  // Never trust stale tab storage over the identity signed into the token.
+  const studentDocumentId = matricDocumentId;
+  if (storedMatric && storedMatric.trim().toUpperCase() !== claimMatric) {
+    sessionStorage.clear();
+  }
+  sessionStorage.setItem("studentDocumentId", studentDocumentId);
+  sessionStorage.setItem("studentMatricNumber", claimMatric);
+
   const snapshot = await getDoc(doc(db, "students", studentDocumentId));
   if (!snapshot.exists()) {
-    sessionStorage.clear();
-    await signOut(auth);
-    location.href = "index.html";
+    const message = document.getElementById("student-page-message");
+    if (message) message.textContent = "Your student record could not be found. Contact the electoral committee.";
     return null;
   }
 

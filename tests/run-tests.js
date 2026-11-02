@@ -619,6 +619,162 @@ const ADMIN = "admin1|admin@nunsa.org";
         await say(CHAT, "/nonsense"); ok(lastText().includes("do not know"));
     });
 
+    console.log("\n== Announcements and election overview ==");
+    const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+    const announce = (body, token = ADMIN) => call("announcements.js", { token, body });
+    const feed = (token = studentToken()) => call("announcements.js", { method: "GET", token, query: {} });
+    const post = (extra = {}) => ({ action: "create", title: "Voting closes Friday", body: "Vote before 6 pm.", authorName: "Chi Nwosu", authorPosition: "Electoral Committee", ...extra });
+
+    await test("announcements: reading needs a login; students read but cannot post, pin or delete", async () => {
+        seedAdmins(); seedStudent({ withAccount: true });
+        eq((await call("announcements.js", { method: "GET", query: {} })).status, 401);
+        eq((await announce(post(), "")).status, 401);
+        eq((await announce(post(), studentToken())).status, 403, "student posted");
+        const made = await announce(post({ pinned: true }));
+        eq(made.status, 200, made.message);
+        const list = await feed();
+        eq(list.status, 200); eq(list.announcements.length, 1); eq(list.canPost, false);
+        eq((await announce({ action: "pin", id: made.id, pinned: true }, studentToken())).status, 403, "student pinned");
+        eq((await announce({ action: "delete", id: made.id }, studentToken())).status, 403, "student deleted");
+        eq((await announce({ action: "delete", id: made.id })).status, 200); eq((await feed()).announcements.length, 0);
+    });
+    await test("announcements: validation (title, names, text or image) and image rules", async () => {
+        seedAdmins();
+        eq((await announce(post({ title: "" }))).status, 400);
+        eq((await announce(post({ authorName: "" }))).status, 400);
+        eq((await announce(post({ authorPosition: "" }))).status, 400);
+        eq((await announce(post({ body: "" }))).status, 400, "no text and no image");
+        eq((await announce(post({ image: "data:text/html;base64,PGgxPg==" }))).status, 400, "non-image data accepted");
+        eq((await announce(post({ image: "data:image/png;base64," + "A".repeat(800 * 1024) }))).status, 400, "huge image accepted");
+        eq((await announce(post({ body: "", image: PNG }))).status, 200, "image-only post refused");
+    });
+    await test("announcements: the feed never carries image data (only a hasImage flag); opening one gives the image; pinned come first", async () => {
+        seedAdmins(); seedStudent({ withAccount: true });
+        const plain = await announce(post({ title: "Older notice" }));
+        const withImage = await announce(post({ title: "Poster", body: "", image: PNG }));
+        const pinned = await announce(post({ title: "Pinned notice", pinned: true }));
+        const list = await feed();
+        eq(list.announcements.length, 3);
+        eq(list.announcements[0].title, "Pinned notice", "pinned must be first");
+        const posterInFeed = list.announcements.find(a => a.title === "Poster");
+        eq(posterInFeed.hasImage, true); ok(posterInFeed.image === undefined, "image data was sent in the feed");
+        ok(!JSON.stringify(list).includes("iVBORw0KGgo"), "image bytes leaked into the feed");
+        const one = await call("announcements.js", { method: "GET", token: studentToken(), query: { id: withImage.id } });
+        eq(one.status, 200); ok(one.announcement.image.startsWith("data:image/png;base64,"), "image missing when opened");
+        eq((await call("announcements.js", { method: "GET", token: studentToken(), query: { id: "nope" } })).status, 404);
+    });
+    await test("overview: needs a login; draft elections are private; no matric numbers; disqualified candidates and others' data hidden", async () => {
+        seedStudent({ withAccount: true }); seedElection();
+        store.set("candidates/c1", { electionId: "E1", position: "President", name: "Ada", matricNumber: "FUD/21/777", status: "active", mandate: "Free WiFi for all.", createdAt: Timestamp.now() });
+        store.set("candidates/c2", { electionId: "E1", position: "President", name: "Bola", matricNumber: "FUD/21/778", status: "disqualified" });
+        const get = (query, token = studentToken()) => call("get-election-overview.js", { method: "GET", token, query });
+        eq((await call("get-election-overview.js", { method: "GET", query: { electionId: "E1" } })).status, 401);
+        eq((await get({})).status, 400);
+        eq((await get({ electionId: "nope" })).status, 404);
+        store.set("elections/E9", { title: "Secret draft", status: "draft" });
+        eq((await get({ electionId: "E9" })).status, 403, "draft election visible to students");
+        const r = await get({ electionId: "E1" });
+        eq(r.status, 200, r.message);
+        const names = r.candidates.map(c => c.name); ok(names.includes("Ada") && !names.includes("Bola"), "disqualified candidate listed");
+        ok(!JSON.stringify(r).includes("FUD/21/77"), "matric number leaked");
+        const one = await get({ electionId: "E1", candidateId: "c1" });
+        eq(one.candidates.length, 1); eq(one.candidates[0].mandate, "Free WiFi for all.");
+        eq((await get({ electionId: "E1", candidateId: "c2" })).status, 404, "disqualified candidate reachable by id");
+    });
+
+    console.log("\n== Official student list import (one time) ==");
+    const rosterModule = () => fn("import-student-roster.js");
+    const rosterData = require(path.join(__dirname, "..", "netlify", "functions", "_data", "student-roster.json")).students;
+    const referenceData = require(path.join(__dirname, "..", "netlify", "functions", "_data", "matric-numbers.json"));
+    const runRoster = (body, token = SUPER) => call("import-student-roster.js", { token, body });
+
+    await test("roster data: 296 students, exact same registration numbers as matric-numbers.csv, levels 200/300/400 filled in", async () => {
+        eq(rosterData.length, 296);
+        const result = rosterModule().compareToReference(rosterData, referenceData);
+        ok(result.match, "roster and CSV differ: " + JSON.stringify([result.missingFromRoster, result.notInReference]));
+        eq(result.rosterCount, 296); eq(result.referenceCount, 296);
+        const counts = {}; rosterData.forEach(s => { counts[s.academicLevel] = (counts[s.academicLevel] || 0) + 1; });
+        eq(JSON.stringify(counts), JSON.stringify({ "200 Level": 110, "300 Level": 115, "400 Level": 71 }));
+        ok(rosterData.every(s => /^BMS\/NUR\/\d{2}\/\d{4}$/.test(s.matricNumber) && s.name && s.name === s.name.toUpperCase() && !/\s{2,}/.test(s.name)), "bad matric or name format");
+        const me = rosterData.find(s => s.matricNumber === "BMS/NUR/24/1004");
+        eq(me.academicLevel, "300 Level");
+    });
+    await test("roster check catches a missing, an extra and a duplicated registration number", async () => {
+        const { compareToReference } = rosterModule();
+        let r = compareToReference(rosterData, referenceData.slice(1));
+        ok(!r.match && r.notInReference.length === 1, "extra in roster not caught");
+        r = compareToReference(rosterData.slice(1), referenceData);
+        ok(!r.match && r.missingFromRoster.length === 1, "missing from roster not caught");
+        r = compareToReference([...rosterData, rosterData[0]], referenceData);
+        ok(!r.match && r.duplicatesInRoster.length === 1, "duplicate not caught");
+    });
+    await test("import: only Super Admins; unknown action and missing REPLACE are refused; nothing written", async () => {
+        seedAdmins();
+        eq((await call("import-student-roster.js", { body: { action: "preview" } })).status, 401);
+        eq((await runRoster({ action: "preview" }, ADMIN)).status, 403);
+        eq((await runRoster({ action: "nope" })).status, 400);
+        eq((await runRoster({ action: "import" })).status, 400, "import without REPLACE");
+        ok(![...store.keys()].some(k => k.startsWith("students/") || k.startsWith("systemFlags/")), "something was written");
+    });
+    await test("import: preview writes nothing and reports what would change", async () => {
+        seedAdmins();
+        store.set("students/BMS_NUR_24_1004", { matricNumber: "BMS/NUR/24/1004", name: "OLD NAME", status: "active", accountCreated: true });
+        store.set("students/OLD_X_1", { matricNumber: "OLD/X/1", name: "NOT LISTED", status: "active" });
+        store.set("studentAccounts/OLD_X_1", { matricNumber: "OLD/X/1", active: true, authUid: "u1" });
+        const before = store.size;
+        const r = await runRoster({ action: "preview" });
+        eq(r.status, 200, r.message);
+        eq(r.matchesReferenceCsv, true); eq(r.rosterCount, 296); eq(r.alreadyUsed, false);
+        eq(r.willAdd, 295); eq(r.willUpdate, 1); eq(r.willRemove, 1); eq(r.removedWithAccounts, 1);
+        eq(store.size, before, "preview changed the database");
+    });
+    await test("import: replaces the list, keeps registered students' accounts, switches off removed students, works only once", async () => {
+        seedAdmins();
+        store.set("students/BMS_NUR_24_1004", { matricNumber: "BMS/NUR/24/1004", name: "OLD NAME", status: "active", accountCreated: true, email: "me@gmail.com", profilePicture: "pic.jpg" });
+        store.set("studentAccounts/BMS_NUR_24_1004", { matricNumber: "BMS/NUR/24/1004", active: true, authUid: "u-me" });
+        store.set("students/OLD_X_1", { matricNumber: "OLD/X/1", name: "NOT LISTED", status: "active" });
+        store.set("studentAccess/OLD_X_1", { matricNumber: "OLD/X/1", active: true });
+        store.set("studentAccounts/OLD_X_1", { matricNumber: "OLD/X/1", active: true, authUid: "u1" });
+        store.set("votes/E1_OLD_X_1", { electionId: "E1", matricNumber: "OLD/X/1", authUid: "u1" });
+
+        let r = await runRoster({ action: "import", confirm: "REPLACE" });
+        eq(r.status, 200, r.message);
+        const students = [...store.entries()].filter(([k]) => k.startsWith("students/"));
+        eq(students.length, 296, "student list is not exactly the roster");
+        eq([...store.keys()].filter(k => k.startsWith("studentAccess/")).length, 296);
+        ok(students.every(([, s]) => s.status === "active" && /^(200|300|400) Level$/.test(s.academicLevel)), "level missing");
+        const me = store.get("students/BMS_NUR_24_1004");
+        eq(me.name, "AHMAD ALMA'MUN RAMADAN"); eq(me.academicLevel, "300 Level");
+        eq(me.accountCreated, true); eq(me.email, "me@gmail.com"); eq(me.profilePicture, "pic.jpg");
+        ok(store.get("studentAccounts/BMS_NUR_24_1004").active === true, "kept student was deactivated");
+        ok(!store.has("students/OLD_X_1") && !store.has("studentAccess/OLD_X_1"), "unlisted student still on the list");
+        eq(store.get("studentAccounts/OLD_X_1").active, false); ok(store.has("votes/E1_OLD_X_1"), "a vote was deleted");
+        eq(store.get("systemFlags/studentRosterImport").state, "done");
+        const log = [...store.entries()].filter(([k]) => k.startsWith("auditLogs/")).map(([, v]) => v).find(l => l.action === "student_roster_imported");
+        ok(log && log.removed === 1 && log.added === 295 && log.matchedReferenceCsv === true, "audit entry missing or wrong");
+
+        r = await runRoster({ action: "import", confirm: "REPLACE" });
+        eq(r.status, 409, "second import was allowed");
+        r = await runRoster({ action: "preview" }); eq(r.alreadyUsed, true);
+    });
+    await test("import: refuses and writes nothing if the roster and the CSV ever differ", async () => {
+        seedAdmins();
+        const saved = referenceData.pop();
+        try {
+            const r = await runRoster({ action: "import", confirm: "REPLACE" });
+            eq(r.status, 409); ok(r.notInReference.includes(saved), "difference not reported");
+        } finally { referenceData.push(saved); }
+        ok(![...store.keys()].some(k => k.startsWith("students/") || k.startsWith("systemFlags/")), "wrote despite mismatch");
+    });
+    await test("import: a recent unfinished run blocks a second run; an old crashed run does not", async () => {
+        seedAdmins();
+        store.set("systemFlags/studentRosterImport", { state: "running", startedAt: Timestamp.now() });
+        eq((await runRoster({ action: "import", confirm: "REPLACE" })).status, 409);
+        ok(!store.has("students/BMS_NUR_24_1004"), "ran during an active lock");
+        store.set("systemFlags/studentRosterImport", { state: "running", startedAt: Timestamp.fromMillis(Date.now() - 3600e3) });
+        eq((await runRoster({ action: "import", confirm: "REPLACE" })).status, 200);
+    });
+
     console.log("\n== Admin invitation expiry ==");
     await test("a fresh invitation works; its expiry is set 7 days ahead", async () => {
         seedAdmins();

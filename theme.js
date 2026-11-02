@@ -12,11 +12,15 @@ function applyTheme(value) {
   root.dataset.theme = resolved;
   root.dataset.themePreference = selected;
   document.querySelectorAll("#theme-choice").forEach(select => { select.value = selected; });
+  document.querySelectorAll("[data-theme-choice]").forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.themeChoice === selected));
+  });
+  const names = { system: "Auto", light: "Light", dark: "Dark" };
+  const icons = { system: "◐", light: "☀", dark: "☾" };
   document.querySelectorAll(".theme-toggle").forEach(button => {
-    const icon = resolved === "dark" ? "☀" : "☾";
-    button.textContent = icon;
-    button.title = `Current theme: ${selected}. Activate to change appearance.`;
-    button.setAttribute("aria-label", `Change appearance. Current theme: ${selected}.`);
+    button.textContent = icons[selected];
+    button.title = `Appearance: ${names[selected]} (tap to change)`;
+    button.setAttribute("aria-label", `Appearance: ${names[selected]}. Tap to change.`);
   });
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = resolved === "dark" ? "#101a1d" : "#f5f4ef";
@@ -35,6 +39,13 @@ document.addEventListener("change", event => {
 });
 
 document.addEventListener("click", event => {
+  const choice = event.target.closest?.("[data-theme-choice]");
+  if (choice) {
+    const next = choice.dataset.themeChoice;
+    try { localStorage.setItem(STORAGE_KEY, next); } catch {}
+    applyTheme(next);
+    return;
+  }
   const button = event.target.closest?.(".theme-toggle");
   if (!button) return;
   const current = preference();
@@ -43,20 +54,16 @@ document.addEventListener("click", event => {
   applyTheme(next);
 });
 
-// Add a small appearance selector to every shared header, while preserving the
-// student dashboard's existing selector inside its hamburger menu.
+// Compact appearance button for every shared header (one small icon, not a wide dropdown).
+// The student home / profile / applications pages have their own control inside the menu.
 const header = document.querySelector(".admin-header, .site-header, .student-header");
-if (header && !document.getElementById("theme-choice")) {
-  const wrap = document.createElement("label");
-  wrap.className = "global-theme-picker";
-  wrap.htmlFor = "theme-choice";
-  wrap.textContent = "Appearance";
-  const select = document.createElement("select");
-  select.id = "theme-choice";
-  select.setAttribute("aria-label", "Choose appearance");
-  for (const [value, label] of [["system", "System"], ["light", "Light"], ["dark", "Dark"]]) {
-    const option = document.createElement("option"); option.value = value; option.textContent = label; select.append(option);
-  }
-  wrap.append(select);
-  header.append(wrap);
+if (header && !document.getElementById("theme-choice") && !document.querySelector("[data-theme-choice]") && !header.querySelector(".theme-toggle")) {
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "theme-toggle";
+  const lastAction = [...header.children].reverse().find(node => node.matches("button, a"));
+  const tools = document.createElement("div");
+  tools.className = "header-tools";
+  if (lastAction) { lastAction.before(tools); tools.append(toggle, lastAction); } else { tools.append(toggle); header.append(tools); }
+  applyTheme(preference());
 }

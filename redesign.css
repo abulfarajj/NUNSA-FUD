@@ -474,3 +474,130 @@ body.has-student-bottom-nav { padding-bottom:calc(76px + env(safe-area-inset-bot
   .application-position-row .vote-button { width: 100%; }
   .mandate-dialog { padding: 18px; }
 }
+
+
+/* Admin dashboard: restore a proper tile layout, matching the student dashboard. */
+.page-admin .admin-dashboard .dashboard-section {
+  border: 0 !important;
+  border-top: 1px solid var(--line) !important;
+  padding-top: 20px !important;
+  margin-top: 24px !important;
+}
+.page-admin .admin-link-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+.page-admin .admin-link-list .dashboard-card {
+  position: relative;
+  display: flex !important;
+  width: 100% !important;
+  min-height: 154px !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 17px !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 17px !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow-sm, 0 2px 10px rgba(24,50,56,.06)) !important;
+  text-align: left !important;
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.page-admin .admin-link-list .dashboard-card:hover {
+  background: var(--surface-2) !important;
+  border-color: var(--primary-light) !important;
+  box-shadow: 0 8px 22px rgba(24,50,56,.09) !important;
+  transform: translateY(-2px) !important;
+}
+.page-admin .admin-link-list .card-index {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 11px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+.page-admin .admin-link-copy { width: 100%; }
+.page-admin .admin-link-copy h3 {
+  color: var(--text) !important;
+  font-size: .91rem !important;
+  font-weight: 750;
+  line-height: 1.25;
+  margin: 0 0 5px !important;
+}
+.page-admin .admin-link-copy p {
+  color: var(--muted) !important;
+  font-size: .72rem !important;
+  line-height: 1.45;
+  margin: 0 !important;
+}
+.page-admin .admin-link-list .card-arrow {
+  position: absolute;
+  right: 16px;
+  top: 20px;
+  color: var(--primary);
+  font-size: 1rem;
+}
+.page-admin .admin-link-list .dashboard-card:focus-visible {
+  outline: 3px solid var(--primary-light);
+  outline-offset: 3px;
+}
+@media (min-width: 760px) {
+  .page-admin .admin-link-list { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 14px !important; }
+  .page-admin .admin-link-list .dashboard-card { min-height: 164px !important; padding: 19px !important; }
+}
+@media (max-width: 360px) {
+  .page-admin .admin-link-list { gap: 8px !important; }
+  .page-admin .admin-link-list .dashboard-card { min-height: 145px !important; padding: 12px !important; }
+  .page-admin .admin-link-copy h3 { font-size: .82rem !important; }
+  .page-admin .admin-link-copy p { font-size: .66rem !important; }
+}
+
+/* =========================================================
+   COMPACT CONTROLS: small header tools, small Back buttons,
+   slimmer action buttons, no big Appearance dropdown.
+   ========================================================= */
+.header-tools{display:flex;align-items:center;gap:8px;margin-left:auto;flex:0 0 auto}
+.header-tools .theme-toggle,.theme-toggle{width:34px!important;height:34px!important;min-height:0!important;padding:0!important;border-radius:10px!important;
+  border:1px solid var(--line)!important;background:var(--surface)!important;color:var(--text)!important;font-size:16px!important;line-height:1;
+  display:inline-grid!important;place-items:center;cursor:pointer;box-shadow:none!important;letter-spacing:0}
+.header-tools .theme-toggle:hover{border-color:var(--primary)!important}
+.global-theme-picker{display:none!important}
+
+/* student menu: one-line segmented switch instead of a dropdown */
+.student-menu .menu-label{display:block;margin:8px 12px 4px;font-size:.7rem;color:var(--muted)}
+.student-menu .theme-seg{display:flex;gap:4px;margin:0 12px 6px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--surface-soft,transparent)}
+.student-menu .theme-seg button{display:inline-flex;flex:1;width:auto;justify-content:center;text-align:center;padding:6px 4px;border-radius:8px;font-size:.74rem;font-weight:600;color:var(--muted)}
+.student-menu .theme-seg button[aria-pressed="true"]{background:var(--primary);color:#fff}
+
+/* Back buttons: small pills, left-aligned, never a full-width bar */
+.back-btn,#backBtn,#back-to-portal,.back-link,.container>.back-btn,.editorial-page>.back-btn{
+  display:inline-flex!important;align-items:center;justify-content:center;width:auto!important;max-width:100%;
+  min-height:32px!important;height:auto;padding:6px 14px!important;font-size:.78rem!important;font-weight:600;
+  border-radius:999px!important;letter-spacing:.01em;text-transform:none;margin-bottom:14px}
+.editorial-topbar .logout-button,.editorial-topbar #back-btn,.editorial-topbar #back-dashboard-btn,.admin-header .logout-button{
+  min-height:34px!important;height:auto;padding:6px 12px!important;font-size:.78rem!important;margin:0!important;width:auto!important;border-radius:10px!important}
+
+/* action buttons: slimmer (they were 46-48px tall) */
+.vote-button,.login-button,.primary-btn,.add-btn,.lookup-btn,button[type=submit]{min-height:40px!important;padding:9px 16px!important;font-size:.82rem!important;border-radius:11px}
+.dashboard-card{min-height:0;padding:14px 14px 12px}
+.dashboard-card .card-index{margin-bottom:8px}
+.dashboard-card p{font-size:.78rem}
+
+/* the first block must never slide under the top bar (old negative-margin rule) */
+main>:first-child:not(.page-intro){margin-top:0!important}
+.back-btn,#backBtn,#back-to-portal,.back-link,.container>.back-btn,.editorial-page>.back-btn{align-self:flex-start;width:fit-content!important;justify-self:start}
+#back-btn,#back-dashboard-btn,#back-to-login-from-change{min-height:34px!important;padding:6px 12px!important;font-size:.78rem!important;width:auto!important;border-radius:10px!important}
+
+/* the election card is teal: its headings must stay white (an older, more specific h2 rule made them dark) */
+body.nunsa-page .election-hero h1,body.nunsa-page .election-hero h2,body.nunsa-page .election-hero h3,body.nunsa-page .election-hero strong,
+body .election-hero h2{color:#fff!important}

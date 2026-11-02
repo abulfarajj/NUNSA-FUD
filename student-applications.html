@@ -32,8 +32,12 @@
       <a href="announcements.html">Announcements</a>
       <a href="student-profile.html">My profile</a>
       <div class="menu-divider"></div>
-      <label for="theme-choice">Appearance</label>
-      <select id="theme-choice" aria-label="Choose appearance"><option value="system">Use device setting</option><option value="light">Light</option><option value="dark">Dark</option></select>
+      <span class="menu-label">Appearance</span>
+      <div class="theme-seg" role="group" aria-label="Appearance">
+        <button type="button" data-theme-choice="system" aria-pressed="false">Auto</button>
+        <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
+      </div>
       <button id="student-logout-btn" class="menu-logout" type="button">Log out</button>
     </div>
   </header>
