@@ -28,19 +28,12 @@
         Dashboard
     </button>
 </header>
-<main class="admin-dashboard editorial-page layout-students editorial-split"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">STUDENT RECORDS</p><span class="intro-rule"></span></div><h2 aria-label="Keep the register in order." class="drop-headline">Keep the register in order.</h2><p class="intro-copy">Maintain the student records used by the election system.</p></section>
+<main class="admin-dashboard editorial-page layout-students editorial-split"><section class="page-intro" data-motion="rise"><h2 aria-label="Students" class="drop-headline">Students</h2></section>
 <!-- PAGE INTRO -->
 <section class="admin-welcome-card" data-motion="rise">
-<p class="small-label">
-            GENERAL STUDENT DATABASE
-        </p>
 <h2>
             Student Management
         </h2>
-<p>
-            Manage students who are allowed to access
-            the NUNSA-FUD website.
-        </p>
 </section>
 <!-- ACTIONS -->
 <section class="dashboard-section" data-motion="rise">
@@ -52,22 +45,13 @@
 <h3>
                     Add Student
                 </h3>
-<p>
-                    Add one student using their
-                    registration number.
-                </p>
 <span class="card-arrow">↗</span></button>
 <button class="dashboard-card" id="import-students-btn" type="button"><span class="card-index">02</span>
 <h3>
                     Import Students
                 </h3>
-<p>
-                    Add many students using
-                    CSV or Excel.
-                </p>
 <span class="card-arrow">↗</span></button>
 </div>
-<p class="import-guidance">For bulk imports, include these columns: <code>matricNumber</code>, <code>name</code>, and <code>academicLevel</code>. Academic level is optional, but including it keeps student dashboards accurate.</p>
 <a class="section-link" id="student-template-download" href="data:text/csv;charset=utf-8,matricNumber%2Cname%2CacademicLevel%0ABMS%2FNUR%2F24%2F1004%2CAhmad%20Example%2C200%20Level" download="nunsa-student-import-template.csv">Download CSV template ↓</a>
 </section>
 <!-- SEARCH -->
@@ -76,7 +60,7 @@
             Students
         </h2>
 <div class="student-search-container">
-<input autocomplete="off" id="student-search" placeholder="Search by registration number or name..." type="search"/>
+<input autocomplete="off" id="student-search" placeholder="Search by name or reg number" type="search"/>
 </div>
 <div class="student-list" id="student-list">
 <p>
@@ -85,11 +69,6 @@
 </div>
 </section>
 </main>
-<footer>
-<p>
-        NUNSA-FUD Electronic Voting System
-    </p>
-</footer>
 <!-- =========================
      IMPORT LIBRARY
 ========================= -->

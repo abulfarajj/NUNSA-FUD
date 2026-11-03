@@ -601,3 +601,13 @@ main>:first-child:not(.page-intro){margin-top:0!important}
 /* the election card is teal: its headings must stay white (an older, more specific h2 rule made them dark) */
 body.nunsa-page .election-hero h1,body.nunsa-page .election-hero h2,body.nunsa-page .election-hero h3,body.nunsa-page .election-hero strong,
 body .election-hero h2{color:#fff!important}
+
+/* icon-only share button */
+.share-icon-btn { width:44px; height:44px; min-height:44px !important; padding:0 !important; border-radius:50% !important; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+.share-icon-btn svg { display:block; }
+
+/* landing: login / sign up card */
+.page-index .auth-panel { padding:34px 26px !important; }
+
+.page-index .auth-panel button, .page-index .auth-panel .vote-button { min-height:36px !important; padding:7px 14px !important; font-size:.76rem !important; }
+.page-index .auth-panel #auth-choice { width:min(100%, 280px); margin-inline:auto; }

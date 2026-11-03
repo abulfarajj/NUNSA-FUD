@@ -187,11 +187,11 @@ const RULES = {
     //     because many students share one campus / mobile-carrier IP.
     pinPerAccountAndIp: { maxFailures: 5, windowMs: 15 * 60 * 1000, lockMs: 15 * 60 * 1000 },
     pinPerAccount: { maxFailures: 15, windowMs: 60 * 60 * 1000, lockMs: 30 * 60 * 1000 },
-    pinPerIp: { maxFailures: 100, windowMs: 15 * 60 * 1000, lockMs: 15 * 60 * 1000 },
+    pinPerIp: { maxFailures: 600, windowMs: 15 * 60 * 1000, lockMs: 5 * 60 * 1000 },
     // E-mail code requests (signup + PIN reset)
     emailCodeCooldownMs: 60 * 1000,                 // 1 per minute per student
     emailCodePerStudent: { max: 5, windowMs: 60 * 60 * 1000 },
-    emailCodePerIp: { max: 30, windowMs: 60 * 60 * 1000 }
+    emailCodePerIp: { max: 400, windowMs: 60 * 60 * 1000 }
 };
 
 /* ---------- PIN lockout (used by student-login.js and cast-vote.js) ---------- */

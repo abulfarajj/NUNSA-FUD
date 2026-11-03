@@ -1,4 +1,6 @@
 import { auth, waitUser, noticesApi, ago, shareNotice, el } from "/nunsa-client.js";
+const shareIcon = () => { const w = document.createElement("span"); w.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>'; return w.firstChild; };
+const iconShareBtn = () => { const b = el("button", "secondary-btn announcement-share share-icon-btn"); b.type = "button"; b.setAttribute("aria-label", "Share link"); b.title = "Share"; b.append(shareIcon()); return b; };
 
 const feed = document.getElementById("feed"), detail = document.getElementById("detail"),
       gate = document.getElementById("gate"), msg = document.getElementById("msg"),
@@ -34,7 +36,7 @@ async function showFeed() {
     feed.append(top);
 
     const search = el("input", "announcement-search");
-    search.type = "search"; search.placeholder = "Search announcements";
+    search.type = "search"; search.placeholder = "Search";
     search.setAttribute("aria-label", "Search announcements");
     feed.append(search);
     const list = el("div", "announcement-feed-list");
@@ -59,8 +61,8 @@ async function showFeed() {
             link.append(info, title);
             if (a.body) link.append(el("p", "announcement-excerpt", a.body.length > 160 ? a.body.slice(0, 160) + "…" : a.body));
             if (a.hasImage) link.append(el("span", "tag", "Image attached"));
-            const share = el("button", "secondary-btn announcement-share", "Copy link");
-            share.type = "button"; share.addEventListener("click", async () => {
+            const share = iconShareBtn();
+            share.addEventListener("click", async () => {
                 const result = await shareNotice(a.id, a.title);
                 if (result) say(result, "success");
             });
@@ -81,7 +83,7 @@ async function showOne(id) {
     detail.append(meta(a), h);
     if (a.image) { const img = el("img"); img.src = a.image; img.alt = a.title; img.style.cssText = "width:100%;border-radius:8px;margin:12px 0"; detail.append(img); }
     if (a.body) { const p = el("p", "", a.body); p.style.cssText = "white-space:pre-wrap;margin:12px 0;color:var(--text)"; detail.append(p); }
-    const share = el("button", "vote-button", "COPY / SHARE LINK"); share.type = "button";
+    const share = iconShareBtn();
     share.onclick = async () => { const r = await shareNotice(a.id, a.title); if (r) say(r, "success"); };
     detail.append(share);
 }

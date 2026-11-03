@@ -43,16 +43,14 @@
   </header>
   <main class="student-subpage-main">
     <section class="page-intro">
-      <p class="eyebrow">CANDIDATE APPLICATIONS</p>
       <h1>Run for a position</h1>
-      <p class="intro-copy">Choose an available position and submit your mandate. You can apply for one position in each election.</p>
-    </section>
+      </section>
     <section class="applications-block">
-      <div class="section-heading"><div><p class="eyebrow">OPEN OPPORTUNITIES</p><h2>Available positions</h2></div></div>
+      <div class="section-heading"><div><h2>Available positions</h2></div></div>
       <div id="application-offers"><p class="empty-note">Loading available positions…</p></div>
     </section>
     <section class="applications-block">
-      <div class="section-heading"><div><p class="eyebrow">YOUR SUBMISSIONS</p><h2>My applications</h2></div></div>
+      <div class="section-heading"><div><h2>My applications</h2></div></div>
       <div id="applications-list"><p class="empty-note">Loading your applications…</p></div>
     </section>
     <p id="applications-feedback" class="inline-message" aria-live="polite"></p>
@@ -60,11 +58,9 @@
   </main>
   <dialog id="mandate-dialog" class="mandate-dialog">
     <form method="dialog" id="mandate-form">
-      <p class="eyebrow">CANDIDATE APPLICATION</p>
       <h2 id="mandate-position-title">Apply for a position</h2>
-      <p class="intro-copy">Write the mandate you want students to read when they view your candidate profile.</p>
       <label for="candidate-mandate">Your mandate</label>
-      <textarea id="candidate-mandate" maxlength="4000" rows="8" required placeholder="Explain your priorities, plans, and what you intend to deliver if elected."></textarea>
+      <textarea id="candidate-mandate" maxlength="4000" rows="8" required placeholder="Manifesto"></textarea>
       <small id="mandate-count">0 / 4000</small>
       <div class="mandate-dialog-actions">
         <button type="button" class="secondary-btn" id="cancel-mandate">Cancel</button>
@@ -72,7 +68,7 @@
       </div>
     </form>
   </dialog>
-  <footer class="site-footer"><p>NUNSA-FUD Electronic Voting System</p></footer>
+  <footer class="site-footer"></footer>
   <script src="student-applications.js" type="module"></script>
   <script src="theme.js" type="module"></script>
   <script src="student-nav.js" type="module"></script>
