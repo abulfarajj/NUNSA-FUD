@@ -606,8 +606,31 @@ body .election-hero h2{color:#fff!important}
 .share-icon-btn { width:44px; height:44px; min-height:44px !important; padding:0 !important; border-radius:50% !important; display:inline-flex; align-items:center; justify-content:center; flex:none; }
 .share-icon-btn svg { display:block; }
 
-/* landing: login / sign up card */
-.page-index .auth-panel { padding:34px 26px !important; }
-
-.page-index .auth-panel button, .page-index .auth-panel .vote-button { min-height:36px !important; padding:7px 14px !important; font-size:.76rem !important; }
-.page-index .auth-panel #auth-choice { width:min(100%, 280px); margin-inline:auto; }
+/* Shape: slight curve on cards and controls, even padding */
+:root { --r: 16px; --r-sm: 12px; --radius-card: 16px; --radius-control: 12px; }
+.welcome-card, .admin-card, .admin-welcome-card, .dashboard-section, .login-card,
+.page-container .card, .profile-card, .status-box, .summary-card, .forms-card, .forms-box, .election-info {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-card) !important;
+  padding: 20px !important;
+  margin: 0 0 16px !important;
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea, .pin-box {
+  border-radius: var(--radius-control) !important;
+}
+button, .vote-button, .login-button, .primary-btn, .add-btn, .lookup-btn, .secondary-btn, .back-btn, .admin-status-btn, .logout-button {
+  border-radius: var(--radius-control);
+}
+.dashboard-card .card-arrow { flex: none; }
+.dashboard-card p { flex: 1 1 0; min-width: 0; }
+.dashboard-card:has(> h3 + p) { padding-right: 44px !important; }
+/* a card inside a card becomes a soft tile instead of a second bordered box */
+:is(.welcome-card, .admin-card, .admin-welcome-card, .dashboard-section, .login-card, .profile-card, .status-box, .summary-card, .forms-card, .forms-box, .election-info, .card)
+:is(.welcome-card, .admin-card, .admin-welcome-card, .dashboard-section, .login-card, .profile-card, .status-box, .summary-card, .forms-card, .forms-box, .election-info, .card) {
+  background: var(--surface-soft) !important;
+  border: 0 !important;
+  border-radius: var(--radius-control) !important;
+  padding: 16px !important;
+  margin: 0 0 12px !important;
+}

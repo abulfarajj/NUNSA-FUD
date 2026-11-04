@@ -46,7 +46,7 @@ loginForm.addEventListener("submit", async (event) => {
 
     const loginButton = loginForm.querySelector("button[type='submit']");
     loginButton.disabled = true;
-    loginButton.textContent = "PLEASE WAIT...";
+    loginButton.textContent = "Please wait…";
     loginMessage.textContent = "Signing in...";
 
     try {
@@ -65,7 +65,7 @@ loginForm.addEventListener("submit", async (event) => {
             await signOut(auth);
             loginMessage.textContent = "This account is not registered as an administrator.";
             loginButton.disabled = false;
-            loginButton.textContent = "LOGIN";
+            loginButton.textContent = "Log in";
             return;
         }
 
@@ -75,7 +75,7 @@ loginForm.addEventListener("submit", async (event) => {
             await signOut(auth);
             loginMessage.textContent = "This administrator account is inactive.";
             loginButton.disabled = false;
-            loginButton.textContent = "LOGIN";
+            loginButton.textContent = "Log in";
             return;
         }
 
@@ -86,7 +86,7 @@ loginForm.addEventListener("submit", async (event) => {
             await signOut(auth);
             loginMessage.textContent = "This account does not have administrator access.";
             loginButton.disabled = false;
-            loginButton.textContent = "LOGIN";
+            loginButton.textContent = "Log in";
             return;
         }
 
@@ -112,6 +112,13 @@ loginForm.addEventListener("submit", async (event) => {
         }
 
         loginButton.disabled = false;
-        loginButton.textContent = "LOGIN";
+        loginButton.textContent = "Log in";
     }
+});
+
+const passwordToggle = document.getElementById("admin-password-toggle");
+passwordToggle.addEventListener("click", () => {
+    const hidden = passwordInput.type === "password";
+    passwordInput.type = hidden ? "text" : "password";
+    passwordToggle.setAttribute("aria-label", hidden ? "Hide password" : "Show password");
 });

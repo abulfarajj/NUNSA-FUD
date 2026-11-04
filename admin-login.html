@@ -6,7 +6,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/><title>NUNSA-FUD Admin Login</title>
 <link href="style.css" rel="stylesheet"/>
 <link href="theme.css" rel="stylesheet"/>
-<link href="redesign.css" rel="stylesheet"/>
+<link href="redesign.css" rel="stylesheet"/><link href="auth.css" rel="stylesheet"/>
 </head><body class="nunsa-page page-admin-login"><header class="site-header editorial-topbar"><div class="brand-lockup"><img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/><div class="brand-copy"><h1>NUNSA-FUD</h1><p class="system-title">
         Election Administration
     </p></div></div>
@@ -14,25 +14,22 @@
 
 
 </header>
-<main class="container editorial-page layout-admin-login"><section class="page-intro" data-motion="rise"><h2 aria-label="Admin login" class="drop-headline">Admin login</h2></section>
-<section class="welcome-card" data-motion="rise">
-<h2>Admin Login</h2>
+<main class="auth-main"><section class="auth-card" data-motion="rise">
+<h2 class="auth-title">Admin log in</h2>
 <form id="admin-login-form">
-<label for="admin-email">
-                Email:
-            </label>
-<input autocomplete="email" id="admin-email" placeholder="Email" required="" type="email"/>
-<label for="admin-password">
-                Password:
-            </label>
-<input autocomplete="current-password" id="admin-password" placeholder="Password" required="" type="password"/>
-<button class="vote-button" id="login-button" type="submit">
-                LOGIN
-            </button>
-<p id="login-message"></p>
+<label for="admin-email">Email</label>
+<div class="field"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><input autocomplete="email" id="admin-email" placeholder="Email" required="" type="email"/></div>
+<label for="admin-password">Password</label>
+<div class="field"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input autocomplete="current-password" id="admin-password" placeholder="Password" required="" type="password"/><button class="field-toggle" id="admin-password-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+<button class="auth-btn auth-primary" id="login-button" type="submit">Log in</button>
+<p class="auth-message" id="login-message" role="status"></p>
 </form>
-</section>
-</main>
+</section></main>
+<footer>
+<p>
+        NUNSA-FUD Electronic Voting System
+    </p>
+</footer>
 <script src="admin-login.js" type="module">
 </script>
 <script defer="True" src="motion.js"></script><script src="theme.js" type="module"></script>

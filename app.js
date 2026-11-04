@@ -162,6 +162,15 @@ function setupDigitInputs(group) {
     });
 }
 
+const authTitle = document.getElementById("student-auth-title");
+const authDescription = document.getElementById("student-auth-description");
+
+function setHeading(title, description = "") {
+    authTitle.textContent = title;
+    authDescription.textContent = description;
+    authDescription.hidden = !description;
+}
+
 function hideAllStudentForms() {
     authChoice.style.display = "none";
     loginForm.style.display = "none";
@@ -170,6 +179,7 @@ function hideAllStudentForms() {
 }
 
 function showChoice() {
+    setHeading("Welcome", "Log in or create an account to continue.");
     authChoice.style.display = "flex";
     loginForm.style.display = "none";
     signupForm.style.display = "none";
@@ -181,6 +191,7 @@ function showChoice() {
 }
 
 function showLogin() {
+    setHeading("Log in");
     hideAllStudentForms();
 
     loginForm.style.display = "block";
@@ -192,6 +203,7 @@ function showLogin() {
 }
 
 function showSignup() {
+    setHeading("Create your NUNSA account");
     hideAllStudentForms();
 
     signupForm.style.display = "block";
@@ -204,7 +216,7 @@ function showSignup() {
     signupPinSection.style.display = "none";
 
     signupSubmitBtn.disabled = false;
-    signupSubmitBtn.textContent = "CONTINUE";
+    signupSubmitBtn.textContent = "Continue";
 
     signupMatric.disabled = false;
     signupEmail.disabled = false;
@@ -217,6 +229,7 @@ function showSignup() {
 }
 
 function showForgotPin() {
+    setHeading("Reset your PIN", "A recovery code will be sent to your email.");
     hideAllStudentForms();
 
     forgotPinForm.style.display = "block";
@@ -229,7 +242,7 @@ function showForgotPin() {
     resetPinSection.style.display = "none";
 
     resetPinSubmitBtn.disabled = false;
-    resetPinSubmitBtn.textContent = "SEND RECOVERY CODE";
+    resetPinSubmitBtn.textContent = "Send recovery code";
     resetPinSubmitBtn.type = "submit";
     resetPinSubmitBtn.onclick = null;
 
@@ -249,8 +262,8 @@ function showForgotPin() {
 function setLoginLoading(loading) {
     loginSubmitBtn.disabled = loading;
     loginSubmitBtn.textContent = loading
-        ? "PLEASE WAIT..."
-        : "LOGIN";
+        ? "Please wait…"
+        : "Log in";
 }
 
 function setSignupLoading(loading) {
@@ -258,14 +271,14 @@ function setSignupLoading(loading) {
 
     if (!loading) {
         if (!signupVerificationStarted) {
-            signupSubmitBtn.textContent = "CONTINUE";
+            signupSubmitBtn.textContent = "Continue";
         } else if (!signupEmailVerified) {
-            signupSubmitBtn.textContent = "VERIFY EMAIL";
+            signupSubmitBtn.textContent = "Verify email";
         } else {
-            signupSubmitBtn.textContent = "CREATE PIN";
+            signupSubmitBtn.textContent = "Create PIN";
         }
     } else {
-        signupSubmitBtn.textContent = "PLEASE WAIT...";
+        signupSubmitBtn.textContent = "Please wait…";
     }
 }
 
@@ -410,7 +423,7 @@ signupForm.addEventListener("submit", async event => {
             signupPinSection.style.display = "none";
 
             signupSubmitBtn.textContent =
-                "VERIFY EMAIL";
+                "Verify email";
 
             signupMessage.textContent =
                 "A 6-digit verification code has been sent to your email.";
@@ -468,7 +481,7 @@ signupForm.addEventListener("submit", async event => {
             signupEmail.disabled = true;
 
             signupSubmitBtn.textContent =
-                "CREATE PIN";
+                "Create PIN";
 
             signupMessage.textContent =
                 "Email verified. Create your 4-digit PIN.";
@@ -533,7 +546,7 @@ signupForm.addEventListener("submit", async event => {
     } catch (error) {
         if (error.accountExists) {
             signupMessage.textContent =
-                "An account already exists. Please LOGIN or RESET PIN instead.";
+                "An account already exists. Log in or reset your PIN instead.";
         } else {
             signupMessage.textContent =
                 error.message ||
@@ -618,7 +631,7 @@ forgotPinForm.addEventListener("submit", async event => {
     if (!resetCodeSent) {
         resetPinSubmitBtn.disabled = true;
         resetPinSubmitBtn.textContent =
-            "PLEASE WAIT...";
+            "Please wait…";
 
         resetPinMessage.textContent =
             "Sending your PIN recovery code...";
@@ -643,7 +656,7 @@ forgotPinForm.addEventListener("submit", async event => {
                 false;
 
             resetPinSubmitBtn.textContent =
-                "VERIFY CODE";
+                "Verify code";
 
             resetPinMessage.textContent =
                 "A 6-digit recovery code has been sent to the email address you used when creating your account.";
@@ -654,7 +667,7 @@ forgotPinForm.addEventListener("submit", async event => {
                 false;
 
             resetPinSubmitBtn.textContent =
-                "SEND RECOVERY CODE";
+                "Send recovery code";
 
             resetPinMessage.textContent =
                 error.message ||
@@ -677,7 +690,7 @@ forgotPinForm.addEventListener("submit", async event => {
 
         resetPinSubmitBtn.disabled = true;
         resetPinSubmitBtn.textContent =
-            "VERIFYING...";
+            "Verifying…";
 
         resetPinMessage.textContent =
             "Verifying your recovery code...";
@@ -708,7 +721,7 @@ forgotPinForm.addEventListener("submit", async event => {
                 false;
 
             resetPinSubmitBtn.textContent =
-                "RESET PIN";
+                "Reset PIN";
 
             resetPinMessage.textContent =
                 "Recovery code verified. Create your new 4-digit PIN.";
@@ -719,7 +732,7 @@ forgotPinForm.addEventListener("submit", async event => {
                 false;
 
             resetPinSubmitBtn.textContent =
-                "VERIFY CODE";
+                "Verify code";
 
             resetPinMessage.textContent =
                 error.message ||
@@ -767,7 +780,7 @@ forgotPinForm.addEventListener("submit", async event => {
 
     resetPinSubmitBtn.disabled = true;
     resetPinSubmitBtn.textContent =
-        "RESETTING...";
+        "Resetting…";
 
     resetPinMessage.textContent =
         "Resetting your PIN...";
@@ -791,7 +804,7 @@ forgotPinForm.addEventListener("submit", async event => {
 
         resetPinSubmitBtn.disabled = false;
         resetPinSubmitBtn.textContent =
-            "BACK TO LOGIN";
+            "Back to log in";
 
         resetPinSubmitBtn.type = "button";
 
@@ -805,7 +818,7 @@ forgotPinForm.addEventListener("submit", async event => {
             false;
 
         resetPinSubmitBtn.textContent =
-            "RESET PIN";
+            "Reset PIN";
 
         resetPinMessage.textContent =
             error.message ||

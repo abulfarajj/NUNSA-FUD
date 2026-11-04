@@ -26,10 +26,14 @@
         Elections
     </button>
 </header>
-<main class="admin-dashboard editorial-page layout-manage-election management-page"><!-- =========================================
+<main class="admin-dashboard editorial-page layout-manage-election management-page"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">ELECTION WORKSPACE</p><span class="intro-rule"></span></div><h2 aria-label="One election. Every detail." class="drop-headline">One election. Every detail.</h2><p class="intro-copy">Review status, manage participation and control the election lifecycle.</p></section>
+<!-- =========================================
          ELECTION HEADER
     ========================================== -->
 <section class="admin-welcome-card" data-motion="rise">
+<p class="small-label">
+            ELECTION MANAGEMENT
+        </p>
 <h2 id="election-title">
             Loading election...
         </h2>
@@ -110,6 +114,9 @@
 <strong>
                     Manage Candidates
                 </strong>
+<small>
+                    Add and manage candidates for this election.
+                </small>
 <span class="card-arrow">↗</span></button>
 </div>
 </section>
@@ -128,6 +135,9 @@
 <strong>
                     Manage Voters
                 </strong>
+<small>
+                    Add or import students eligible to vote in this election.
+                </small>
 <span class="card-arrow">↗</span></button>
 </div>
 </section>
@@ -146,6 +156,9 @@
 <strong>
                     View Results
                 </strong>
+<small>
+                    View live election results and final results.
+                </small>
 <span class="card-arrow">↗</span></button>
 </div>
 </section>
@@ -160,6 +173,11 @@
 <h3>
                 Publish Election
             </h3>
+<p>
+                Publishing makes this election available
+                to voters and allows it to follow its
+                scheduled start and end times.
+            </p>
 <button class="login-button" id="publish-election-btn" type="button">
                 PUBLISH ELECTION
             </button>
@@ -174,9 +192,34 @@
             Voting Rules
         </h2>
 <div class="admin-welcome-card">
+<p>
+                Students must be in this election's
+                eligible voter list to cast a vote.
+            </p>
+<p>
+                Students who are registered in the
+                general NUNSA-FUD student database but
+                are not on this election's voter list
+                can still enter the website and follow
+                the election, but cannot vote.
+            </p>
+<p>
+                Voting will automatically become
+                available at the scheduled start time
+                and automatically end at the scheduled
+                end time.
+            </p>
+<p>
+                Elections are not manually paused.
+            </p>
 </div>
 </section>
 </main>
+<footer>
+<p>
+        NUNSA-FUD Electronic Voting System
+    </p>
+</footer>
 <script src="manage-election.js" type="module"></script>
 <script defer="True" src="motion.js"></script><script src="theme.js" type="module"></script>
 </body>

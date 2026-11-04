@@ -25,12 +25,16 @@
             BACK
         </button>
 </header>
-<main class="admin-container editorial-page layout-voters editorial-split"><section class="page-intro" data-motion="rise"><h2 aria-label="Voters" class="drop-headline">Voters</h2></section>
+<main class="admin-container editorial-page layout-voters editorial-split"><section class="page-intro" data-motion="rise"><div class="intro-meta"><p class="eyebrow">VOTER ELIGIBILITY</p><span class="intro-rule"></span></div><h2 aria-label="A reliable register matters." class="drop-headline">A reliable register matters.</h2><p class="intro-copy">Manage the students eligible to vote in this election.</p></section>
 <!-- ========================= -->
 <!-- PAGE INTRO -->
 <!-- ========================= -->
 <section class="admin-card" data-motion="rise">
 <h2>Voter Management</h2>
+<p>
+                Manage the eligible voters for this election.
+                Voters are identified using their matriculation numbers.
+            </p>
 <div class="election-info" id="election-info">
 <h3 id="election-title">Loading election...</h3>
 <p id="election-description"></p>
@@ -44,6 +48,9 @@
 <div class="section-header">
 <div>
 <h2>Voter List</h2>
+<p>
+                        Add voters individually or import many matric numbers at once.
+                    </p>
 </div>
 <div class="action-buttons">
 <button class="primary-btn" id="add-voter-btn">
@@ -60,6 +67,9 @@
 <!-- ========================= -->
 <section class="admin-card" data-motion="rise" id="add-voter-section" style="display: none;">
 <h2>Add Voter</h2>
+<p>
+                Enter the student's matriculation number.
+            </p>
 <form id="voter-form">
 <div class="form-group">
 <label for="voter-matric">
@@ -83,20 +93,34 @@
 <!-- ========================= -->
 <section class="admin-card" data-motion="rise" id="import-section" style="display: none;">
 <h2>Import Voters</h2>
+<p>
+                Upload a CSV or Excel file containing the matriculation
+                numbers of eligible voters.
+            </p>
 <div class="import-instructions">
 <strong>File format:</strong>
+<p>
+                    Put one matric number on each row.
+                </p>
 <p>Example:</p>
 <pre>Matric Number
 FUD/NS/2024/001
 FUD/NS/2024/002
 FUD/NS/2024/003
 FUD/NS/2024/004</pre>
+<p>
+                    You can also upload a spreadsheet where the matric
+                    numbers are in the first column.
+                </p>
 </div>
 <div class="form-group">
 <label for="voter-file">
                     Select File
                 </label>
 <input accept=".csv,.xlsx,.xls" id="voter-file" type="file"/>
+<small>
+                    Supported files: CSV, XLSX and XLS
+                </small>
 </div>
 <div class="form-actions">
 <button class="primary-btn" id="preview-import-btn" type="button">
