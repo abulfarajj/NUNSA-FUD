@@ -212,11 +212,6 @@ function createAdminCard(admin) {
             ? "Super Admin"
             : "Regular Admin";
 
-    const statusLabel =
-        admin.active === true
-            ? "Active"
-            : "Inactive";
-
     const isCurrentUser =
         auth.currentUser &&
         admin.id === auth.currentUser.uid;
@@ -226,7 +221,7 @@ function createAdminCard(admin) {
     if (isCurrentUser) {
 
         actionButton = `
-            <p><strong>Current account</strong></p>
+            <span class="admin-row-note">You</span>
         `;
 
     } else if (
@@ -260,11 +255,7 @@ function createAdminCard(admin) {
 
         } else {
 
-            actionButton = `
-                <p>
-                    <strong>Super Admin</strong>
-                </p>
-            `;
+            actionButton = "";
         }
 
     } else {
@@ -281,44 +272,18 @@ function createAdminCard(admin) {
         `;
     }
 
+    const meta = [roleLabel, admin.founder === true ? "Founder" : ""]
+        .filter(Boolean)
+        .join(" · ");
+
     return `
-        <div
-            class="admin-welcome-card"
-            style="margin-bottom:15px;"
-        >
-
-            <h3>
-                ${escapeHtml(
-                    admin.name || "Unnamed Admin"
-                )}
-            </h3>
-
-            <p>
-                <strong>Email:</strong>
-                ${escapeHtml(
-                    admin.email || "No email"
-                )}
-            </p>
-
-            <p>
-                <strong>Role:</strong>
-                ${roleLabel}
-            </p>
-
-            <p>
-                <strong>Status:</strong>
-                ${statusLabel}
-            </p>
-
-            ${admin.founder === true ? `
-                <p>
-                    <strong>Authority:</strong>
-                    Founder
-                </p>
-            ` : ""}
-
+        <div class="admin-row">
+            <div class="admin-row-main">
+                <strong>${escapeHtml(admin.name || "Unnamed admin")}</strong>
+                <span>${escapeHtml(meta)}</span>
+                <span>${escapeHtml(admin.email || "No email")}</span>
+            </div>
             ${actionButton}
-
         </div>
     `;
 }
@@ -565,6 +530,7 @@ inviteForm.addEventListener("submit", async (event) => {
             "green";
 
         inviteForm.reset();
+        inviteForm.dispatchEvent(new Event("invited"));
 
         await loadAdmins();
 
@@ -593,3 +559,23 @@ function escapeHtml(value) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+const inviteDialog = document.getElementById("invite-dialog");
+
+document.getElementById("invite-open-btn").addEventListener("click", () => {
+    inviteMessage.textContent = "";
+    inviteDialog.showModal();
+});
+
+document.getElementById("invite-close-btn").addEventListener("click", () => {
+    inviteDialog.close();
+});
+
+inviteDialog.addEventListener("click", (event) => {
+    if (event.target === inviteDialog) {
+        inviteDialog.close();
+    }
+});
+
+inviteForm.addEventListener("invited", () => {
+    setTimeout(() => inviteDialog.close(), 1500);
+});

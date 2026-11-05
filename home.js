@@ -16,11 +16,11 @@ async function getJson(path) {
   return data;
 }
 
-function section(title, eyebrow, href, linkLabel = "See all →") {
+function section(title, href, linkLabel = "See all →") {
   const box = el("section", "home-section");
   const head = el("div", "section-heading");
   const left = el("div", "");
-  left.append(el("p", "eyebrow", eyebrow), el("h2", "", title));
+  left.append(el("h2", "", title));
   head.append(left);
   if (href) { const link = el("a", "section-link", linkLabel); link.href = href; head.append(link); }
   box.append(head);
@@ -40,7 +40,7 @@ function makeStats(positions, candidates, stage) {
 function makeTimeline(stageIndex, labels) {
   const wrap = el("section", "home-section");
   const heading = el("div", "section-heading");
-  heading.append(el("p", "eyebrow", "ELECTION TIMELINE"));
+  heading.append(el("h2", "", "Timeline"));
   wrap.append(heading);
   const panel = el("div", "timeline-wrap");
   const track = el("div", "timeline-track");
@@ -118,7 +118,7 @@ async function loadOverview(electionId) {
 
 async function renderCandidates(election, overview) {
   if (!election || !overview?.candidates?.length) { ui.candidates.replaceChildren(); return; }
-  const wrap = section("Meet the candidates", "ON THE BALLOT", `candidate-directory.html?electionId=${encodeURIComponent(election.id)}`);
+  const wrap = section("Meet the candidates", `candidate-directory.html?electionId=${encodeURIComponent(election.id)}`);
   const strip = el("div", "candidate-strip");
   overview.candidates.slice(0, 8).forEach(candidate => {
     const link = el("a", "candidate-mini");
@@ -134,7 +134,7 @@ async function renderCandidates(election, overview) {
 async function renderAnnouncements() {
   try {
     const data = await noticesApi();
-    const wrap = section("Announcements", "NOTICE BOARD", "announcements.html", "All announcements →");
+    const wrap = section("Announcements", "announcements.html", "All announcements →");
     const feed = el("div", "notice-feed");
     if (!data.success || !data.announcements?.length) {
       feed.append(el("p", "empty-note", "No announcements have been published yet."));
@@ -157,7 +157,7 @@ async function renderAnnouncements() {
 }
 
 async function renderStatus(election, forms, me) {
-  const wrap = section("My status", "YOUR ELECTION ACTIVITY", null);
+  const wrap = section("My status", null);
   const grid = el("div", "status-grid");
   const matric = sessionStorage.getItem("studentMatricNumber") || "";
   let hasVoted = false, eligible = false;
@@ -218,7 +218,6 @@ async function init() {
     await renderCandidates(election, overview);
   } else {
     const emptyHero = el("section", "election-hero election-empty");
-    emptyHero.append(el("p", "eyebrow", "CURRENT ELECTION"));
     emptyHero.append(el("h2", "", "No active elections"));
     emptyHero.append(el("p", "election-subtitle", "There are no active elections or open application periods right now. Check back here for the next update."));
     ui.election.replaceChildren(emptyHero);

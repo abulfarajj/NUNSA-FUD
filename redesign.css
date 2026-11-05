@@ -634,3 +634,25 @@ button, .vote-button, .login-button, .primary-btn, .add-btn, .lookup-btn, .secon
   padding: 16px !important;
   margin: 0 0 12px !important;
 }
+
+/* admin management: slots as one line, administrators as rows */
+.admin-slots { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 0 0 16px; color: var(--muted); font-size: .95rem; }
+.admin-slots strong { color: var(--text); font-size: 1.15rem; }
+.admin-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.admin-row:first-child { border-top: 0; padding-top: 4px; }
+.admin-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.admin-row-main strong { font-size: 1.05rem; color: var(--text); }
+.admin-row-main span { font-size: .9rem; color: var(--muted); overflow-wrap: anywhere; }
+.admin-row .admin-status-btn { flex: none; min-height: 36px; padding: 6px 14px; font-size: .85rem; }
+.admin-row-note { flex: none; font-size: .85rem; color: var(--muted); }
+
+/* admin management: invite popup */
+.admin-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; }
+.admin-top .admin-slots { margin: 0; }
+.admin-top .invite-open { flex: none; width: auto !important; min-height: 38px; padding: 8px 16px; font-size: .9rem; }
+.invite-dialog { margin: auto !important; width: min(92vw, 420px); max-height: 90vh; overflow-y: auto; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface); color: var(--text); }
+.invite-dialog::backdrop { background: rgba(0, 0, 0, .55); }
+.invite-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.invite-head h2 { margin: 0; font-size: 1.2rem; }
+.invite-close { flex: none; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.invite-close:hover { color: var(--text); }
