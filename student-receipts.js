@@ -1,4 +1,5 @@
 import { auth, db, waitUser, el } from "./nunsa-client.js";
+import { buildReceiptCard } from "./receipt-card.js";
 import { collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const root = document.getElementById("student-receipts-list");
@@ -37,20 +38,7 @@ const asDate = value => value?.toDate ? value.toDate() : value ? new Date(value)
 
     const list = el("div", "receipt-history-list");
     voted.forEach(({ election, receiptCode, votedAt }) => {
-      const item = el("article", "receipt-history-item");
-      const head = el("div", "receipt-history-head");
-      head.append(el("span", "receipt-confirmed", "✓ VOTE RECORDED"));
-      item.append(head, el("h2", "", election.title || "NUNSA-FUD Election"));
-      const details = el("dl", "receipt-history-meta");
-      for (const [label, value] of [
-        ["Matriculation number", matric],
-        ["Date recorded", votedAt ? votedAt.toLocaleString() : "Date unavailable"],
-        ["Receipt reference", receiptCode]
-      ]) {
-        const row = el("div", ""); row.append(el("dt", "", label), el("dd", "", value)); details.append(row);
-      }
-      item.append(details);
-      list.append(item);
+      list.append(buildReceiptCard({ election: election.title || "NUNSA-FUD Election", matric, votedAt, code: receiptCode, rows: [] }));
     });
     root.append(list);
   } catch (error) {

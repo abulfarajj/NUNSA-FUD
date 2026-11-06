@@ -56,11 +56,29 @@ exports.handler = async event => {
                 position: clean(d.position, 80) || "General",
                 profilePicture: clean(d.profilePicture || d.image, 800) || "assets/default-profile.jpg",
                 biography: clean(d.biography || d.bio, 1200),
+                matric: clean(d.matricNumber, 40),
                 mandate: clean(d.mandate || d.manifesto, 4000),
                 manifesto: clean(d.manifesto, 4000),
                 status: d.status === "disqualified" ? "disqualified" : "active"
             };
         }).filter(c => c.status === "active").sort((a, b) => a.position.localeCompare(b.position) || a.name.localeCompare(b.name));
+
+        /* A candidate's level comes from their student record. It is optional, so a failed lookup never blocks the page. */
+        try {
+            const matrics = [...new Set(candidates.map(c => c.matric).filter(Boolean))];
+            const levels = {};
+            for (let i = 0; i < matrics.length; i += 30) {
+                const group = await db.collection("students").where("matricNumber", "in", matrics.slice(i, i + 30)).get();
+                group.docs.forEach(doc => {
+                    const level = clean(doc.data().academicLevel || doc.data().level, 30);
+                    if (level) levels[doc.data().matricNumber] = /^\d+$/.test(level) ? level + " Level" : level;
+                });
+            }
+            candidates.forEach(c => { if (levels[c.matric]) c.level = levels[c.matric]; });
+        } catch (error) {
+            logError("Candidate level lookup failed", error);
+        }
+        candidates.forEach(c => { delete c.matric; });
 
         const requestedCandidate = clean(params.candidateId, 120);
         const selected = requestedCandidate ? candidates.find(c => c.id === requestedCandidate) : null;

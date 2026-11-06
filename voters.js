@@ -53,6 +53,21 @@ const importPreviewBody = document.getElementById("import-preview-body");
 const confirmImportBtn = document.getElementById("confirm-import-btn");
 const clearImportBtn = document.getElementById("clear-import-btn");
 
+function openPopup(popup) {
+    if (!popup.open) popup.showModal();
+}
+
+function closePopup(popup) {
+    if (popup.open) popup.close();
+}
+
+for (const popup of [addVoterSection, importSection]) {
+    popup.querySelector("[data-close]").addEventListener("click", () => popup.close());
+    popup.addEventListener("click", (event) => {
+        if (event.target === popup) popup.close();
+    });
+}
+
 const voterList = document.getElementById("voter-list");
 const voterCount = document.getElementById("voter-count");
 const backBtn = document.getElementById("back-btn");
@@ -233,13 +248,13 @@ async function loadVoters() {
 }
 
 addVoterBtn.addEventListener("click", () => {
-    importSection.style.display = "none";
-    addVoterSection.style.display = "block";
+    closePopup(importSection);
     voterMessage.textContent = "";
+    openPopup(addVoterSection);
 });
 
 cancelAddVoterBtn.addEventListener("click", () => {
-    addVoterSection.style.display = "none";
+    closePopup(addVoterSection);
     voterForm.reset();
     voterMessage.textContent = "";
 });
@@ -276,15 +291,15 @@ voterForm.addEventListener("submit", async (event) => {
 });
 
 importVotersBtn.addEventListener("click", () => {
-    addVoterSection.style.display = "none";
-    importSection.style.display = "block";
+    closePopup(addVoterSection);
     importMessage.textContent = "";
+    openPopup(importSection);
     importPreview.style.display = "none";
     importedVoters = [];
 });
 
 cancelImportBtn.addEventListener("click", () => {
-    importSection.style.display = "none";
+    closePopup(importSection);
     importPreview.style.display = "none";
     voterFileInput.value = "";
     importedVoters = [];
@@ -476,6 +491,11 @@ backBtn.addEventListener("click", () => {
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.href = "admin-login.html";
+        return;
+    }
+
+    if (!new URLSearchParams(window.location.search).get("id")) {
+        window.location.replace("select-election.html?next=voters.html");
         return;
     }
 

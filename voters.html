@@ -65,17 +65,12 @@
 <!-- ========================= -->
 <!-- ADD ONE VOTER -->
 <!-- ========================= -->
-<section class="admin-card" data-motion="rise" id="add-voter-section" style="display: none;">
-<h2>Add Voter</h2>
-<p>
-                Enter the student's matriculation number.
-            </p>
+<dialog class="popup" id="add-voter-section">
+<div class="popup-head"><h2>Add voter</h2><button class="popup-close" type="button" aria-label="Close" data-close><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
 <form id="voter-form">
 <div class="form-group">
-<label for="voter-matric">
-                        Matric Number
-                    </label>
-<input id="voter-matric" placeholder="Reg number" required="" type="text"/>
+<label for="voter-matric">Matric number</label>
+<input autofocus="" id="voter-matric" placeholder="Reg number" required="" type="text"/>
 </div>
 <div class="form-actions">
 <button class="primary-btn" type="submit">
@@ -87,16 +82,12 @@
 </div>
 </form>
 <div class="message" id="voter-message"></div>
-</section>
+</dialog>
 <!-- ========================= -->
 <!-- IMPORT VOTERS -->
 <!-- ========================= -->
-<section class="admin-card" data-motion="rise" id="import-section" style="display: none;">
-<h2>Import Voters</h2>
-<p>
-                Upload a CSV or Excel file containing the matriculation
-                numbers of eligible voters.
-            </p>
+<dialog class="popup wide" id="import-section">
+<div class="popup-head"><h2>Import voters</h2><button class="popup-close" type="button" aria-label="Close" data-close><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
 <div class="import-instructions">
 <strong>File format:</strong>
 <p>
@@ -160,7 +151,7 @@ FUD/NS/2024/004</pre>
                     </button>
 </div>
 </div>
-</section>
+</dialog>
 <!-- ========================= -->
 <!-- ELIGIBLE VOTERS -->
 <!-- ========================= -->

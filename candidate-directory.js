@@ -7,7 +7,7 @@ async function api(electionId) {
   const d = await r.json(); if (!r.ok || !d.success) throw new Error(d.message || "Unable to load candidates."); return d;
 }
 function render(data) {
-  groups.replaceChildren(); desc.textContent = data.election.description || "Browse the candidates for this election.";
+  groups.replaceChildren(); desc.textContent = data.election.description || "";
   if (!data.candidates.length) { groups.append(el("p", "empty-note", "No candidates have been published for this election.")); return; }
   const byPosition = new Map();
   data.candidates.forEach(c => { if (!byPosition.has(c.position)) byPosition.set(c.position, []); byPosition.get(c.position).push(c); });
@@ -17,7 +17,7 @@ function render(data) {
     candidates.forEach(c => {
       const row = el("a", "candidate-directory-row"); row.href = `candidate.html?electionId=${encodeURIComponent(data.election.id)}&id=${encodeURIComponent(c.id)}`;
       const img = el("img"); img.src = c.profilePicture || "assets/default-profile.jpg"; img.alt = ""; img.onerror = () => { img.src = "assets/default-profile.jpg"; };
-      const info = el("div", ""); info.append(el("strong", "", c.name), el("small", "", c.biography || "Open candidate profile and read mandate."));
+      const info = el("div", "candidate-directory-info"); info.append(el("strong", "", c.name)); if (c.level) info.append(el("small", "", c.level));
       row.append(img, info, el("span", "candidate-arrow", "→")); list.append(row);
     });
     section.append(list); groups.append(section);

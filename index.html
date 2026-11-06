@@ -21,10 +21,10 @@
 <div class="field"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input autocomplete="off" id="login-matric" placeholder="Registration number" required="" type="text"/></div>
 <label class="pin-label">PIN</label>
 <div class="pin-input-group" id="login-pin-group">
-<input aria-label="PIN digit 1" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="PIN digit 2" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="PIN digit 3" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="PIN digit 4" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="PIN digit 1" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="PIN digit 2" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="PIN digit 3" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="PIN digit 4" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
 </div>
 <button class="auth-link auth-forgot" id="forgot-pin-btn" type="button">Forgot PIN?</button>
 <button class="auth-btn auth-primary" id="login-submit-btn" type="submit">Log in</button>
@@ -50,17 +50,17 @@
 <div id="signup-pin-section" style="display: none;">
 <label class="pin-label">Create a 4-digit PIN</label>
 <div class="pin-input-group" id="signup-pin-group">
-<input aria-label="New PIN digit 1" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="New PIN digit 2" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="New PIN digit 3" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="New PIN digit 4" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="New PIN digit 1" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="New PIN digit 2" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="New PIN digit 3" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="New PIN digit 4" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
 </div>
 <label class="pin-label">Confirm PIN</label>
 <div class="pin-input-group" id="signup-confirm-pin-group">
-<input aria-label="Confirm PIN digit 1" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="Confirm PIN digit 2" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="Confirm PIN digit 3" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="Confirm PIN digit 4" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="Confirm PIN digit 1" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Confirm PIN digit 2" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Confirm PIN digit 3" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Confirm PIN digit 4" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
 </div>
 </div>
 <button class="auth-btn auth-primary" id="signup-submit-btn" type="submit">Continue</button>
@@ -84,17 +84,17 @@
 <div id="reset-pin-section" style="display: none;">
 <label class="pin-label">New 4-digit PIN</label>
 <div class="pin-input-group" id="reset-pin-group">
-<input aria-label="New PIN digit 1" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="New PIN digit 2" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="New PIN digit 3" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="New PIN digit 4" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="New PIN digit 1" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="New PIN digit 2" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="New PIN digit 3" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="New PIN digit 4" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
 </div>
 <label class="pin-label">Confirm new PIN</label>
 <div class="pin-input-group" id="reset-confirm-pin-group">
-<input aria-label="Confirm new PIN digit 1" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="Confirm new PIN digit 2" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="Confirm new PIN digit 3" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="Confirm new PIN digit 4" autocomplete="new-password" class="pin-box" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="Confirm new PIN digit 1" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Confirm new PIN digit 2" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Confirm new PIN digit 3" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
+<input aria-label="Confirm new PIN digit 4" autocomplete="off" class="pin-box" inputmode="numeric" maxlength="1" type="text"/>
 </div>
 </div>
 <button class="auth-btn auth-primary" id="reset-pin-submit-btn" type="submit">Send recovery code</button>
@@ -103,6 +103,7 @@
 </form>
 </section> </main> <div class="admin-access"> <button id="admin-access-btn" type="button">Admin log in</button> </div> <footer> <p>    
     NUNSA-FUD Electronic Voting System    
-</p> </footer> <script src="app.js" type="module"></script> <script defer="True" src="motion.js"></script><script src="theme.js" type="module"></script>
+</p> </footer> <script src="app.js" type="module"></script> <script src="pin-mask.js"></script>
+<script defer="True" src="motion.js"></script><script src="theme.js" type="module"></script>
 </body>
 </html> 

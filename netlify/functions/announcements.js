@@ -39,29 +39,40 @@ async function whoIsCalling(event) {
     return { role: "student", uid: decoded.uid, student: studentAuth.student };
 }
 
-/* Positions this student currently holds: they WON a position in a finalized election
- * (results/{electionId}, top candidate with votes and no tie). The newest win per position counts. */
+/* Positions this student currently holds: they WON a position (top candidate with votes and no tie) in an
+ * election that ended at least OFFICE_DELAY_MS ago. The count comes from the stored final result when there is
+ * one, and from the verified tally otherwise, so it never waits for an admin to open the results page.
+ * The newest win per position counts. */
+const OFFICE_DELAY_MS = 2 * 60 * 60 * 1000;
+
 async function officesFor(student) {
+    const { getResults } = require("./get-election-results");
     const m = [...new Set([String(student.matricNumber), String(student.matricNumber).toUpperCase()])];
     const cands = await db.collection("candidates").where("matricNumber", "in", m).get();
-    const cache = {}, out = [];
+    const results = {}, elections = {}, out = [];
     for (const c of cands.docs) {
         const cd = c.data();
         if (!cd.electionId) continue;
-        if (!(cd.electionId in cache)) {
-            const r = await db.collection("results").doc(cd.electionId).get();
-            cache[cd.electionId] = r.exists ? r.data() : null;
+        if (!(cd.electionId in elections)) {
+            const electionSnap = await db.collection("elections").doc(cd.electionId).get();
+            elections[cd.electionId] = electionSnap.exists ? electionSnap.data() : null;
         }
-        const res = cache[cd.electionId];
-        if (!res || !res.finalizedAt) continue;
+        const election = elections[cd.electionId];
+        if (!election || election.status !== "published") continue;
+        const endedAt = ms(election.endAt);
+        if (!endedAt || Date.now() < endedAt + OFFICE_DELAY_MS) continue;
+        if (!(cd.electionId in results)) {
+            const response = await getResults({ queryStringParameters: { id: cd.electionId } });
+            results[cd.electionId] = response.statusCode === 200 ? JSON.parse(response.body) : null;
+        }
+        const res = results[cd.electionId];
+        if (!res) continue;
         const pos = (res.positions || []).find(p => p.position === cd.position);
         const top = pos && pos.candidates && pos.candidates[0], second = pos && pos.candidates && pos.candidates[1];
         if (!top || top.id !== c.id || !(top.votes > 0) || (second && second.votes === top.votes)) continue;
-        const electionSnap = await db.collection("elections").doc(cd.electionId).get();
-        const election = electionSnap.exists ? electionSnap.data() : {};
-        const termEnd = ms(election.termEndsAt || res.termEndsAt);
+        const termEnd = ms(election.termEndsAt);
         if (termEnd && Date.now() >= termEnd) continue;
-        out.push({ position: cd.position, electionId: cd.electionId, electionTitle: String(res.title || election.title || ""), since: ms(res.finalizedAt), termEndsAt: termEnd || null });
+        out.push({ position: cd.position, electionId: cd.electionId, electionTitle: String(election.title || ""), since: endedAt + OFFICE_DELAY_MS, termEndsAt: termEnd || null });
     }
     out.sort((a, b) => b.since - a.since);
     const seen = new Set();

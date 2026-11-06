@@ -53,6 +53,7 @@ const verifyResetCode = require("./verify-pin-reset-code");
 const resetPin = require("./reset-student-pin");
 const { castVote } = require("./cast-vote");
 const { loadOffers } = require("./get-form-offers");
+const { receiptPng, resultsPng } = require("./_lib/pixel-image");
 const { applyForStudent } = require("./apply-for-position");
 const { getResults } = require("./get-election-results");
 
@@ -92,18 +93,44 @@ function chunkText(text) {
 }
 
 /** rows = [[{ text, data }]] -> Telegram inline keyboard */
+const keyboard = rows => ({
+    inline_keyboard: rows.map(row => row.map(button => (button.url
+        ? { text: button.text, url: button.url }
+        : { text: button.text, callback_data: button.data })))
+});
+
 async function send(chatId, text, rows) {
     const parts = chunkText(text);
     for (let i = 0; i < parts.length; i++) {
         const payload = { chat_id: chatId, text: parts[i], disable_web_page_preview: true };
-        if (rows && i === parts.length - 1) {
-            payload.reply_markup = {
-                inline_keyboard: rows.map(row => row.map(button => (button.url
-                    ? { text: button.text, url: button.url }
-                    : { text: button.text, callback_data: button.data })))
-            };
-        }
+        if (rows && i === parts.length - 1) payload.reply_markup = keyboard(rows);
         await tg("sendMessage", payload);
+    }
+}
+
+/* Sent as a file so Telegram keeps the sharp pixels and the person can save the PNG as it is. */
+async function sendImage(chatId, png, filename, caption) {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) return null;
+    try {
+        const form = new FormData();
+        form.append("chat_id", String(chatId));
+        form.append("document", new Blob([png], { type: "image/png" }), filename);
+        if (caption) form.append("caption", caption);
+        const response = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: "POST", body: form });
+        return response.ok ? await response.json().catch(() => null) : null;
+    } catch (error) {
+        logError("Telegram image error", error);
+        return null;
+    }
+}
+
+/* An image that fails to draw or send must never stop the normal text reply. */
+async function sendImageSafely(chatId, makePng, filename, caption) {
+    try {
+        await sendImage(chatId, makePng(), filename, caption);
+    } catch (error) {
+        logError("Pixel image error", error);
     }
 }
 
@@ -640,7 +667,9 @@ async function showStatus(chatId, student) {
     if (!applications.length) return send(chatId, "You have not applied for any position. Use /apply when applications are open.");
     const lines = applications.map(application => {
         const label = application.status === "applied"
-            ? "applied - you are a candidate unless the admins disqualify you after screening"
+            ? (["published", "ended"].includes(application.electionStatus)
+                ? "you are on the ballot"
+                : "applied - you are a candidate unless the admins disqualify you after screening")
             : application.status === "disqualified"
                 ? "disqualified" + (application.disqualifiedReason ? " (" + application.disqualifiedReason + ")" : "")
                 : application.status;
@@ -652,14 +681,22 @@ async function showStatus(chatId, student) {
 async function showMyVote(chatId, student) {
     const elections = await publishedElections();
     const lines = [];
+    const receipts = [];
     for (const election of elections) {
         const id = voterId(election.id, student.matricNumber);
         const voter = await db.collection("voters").doc(id).get();
         if (!voter.exists) continue;
         const vote = await db.collection("votes").doc(id).get();
+        if (vote.exists && vote.data().receiptCode) {
+            const created = vote.data().createdAt;
+            receipts.push({ election: election.title, matric: student.matricNumber, code: vote.data().receiptCode, votedAt: created && created.toMillis ? created.toMillis() : undefined, rows: [] });
+        }
         lines.push(vote.exists
             ? `- ${election.title}: you have voted. Receipt: ${vote.data().receiptCode || "n/a"}`
             : `- ${election.title}: you have not voted yet`);
+    }
+    for (const receipt of receipts.slice(0, 3)) {
+        await sendImageSafely(chatId, () => receiptPng(receipt, "light"), `vote-receipt-${receipt.code}.png`, `Receipt for ${receipt.election}`);
     }
     return send(chatId, lines.length ? "Your voting status:\n" + lines.join("\n") : "You are not on the voter list of any election.", BACK_ROW);
 }
@@ -687,6 +724,7 @@ async function showResultsFor(chatId, choice) {
         });
         lines.push("");
     });
+    await sendImageSafely(chatId, () => resultsPng({ ...data, election: { title: choice.title } }, "light"), "election-results.png", `${choice.title} - results`);
     return send(chatId, lines.join("\n").trim(), BACK_ROW);
 }
 
@@ -787,6 +825,13 @@ async function submitVote(chatId, session, pin) {
 
     if (response.statusCode === 200 && data.success) {
         setStep(session, "idle", {});
+        await sendImageSafely(chatId, () => receiptPng({
+            election: ballot.title,
+            matric: student.matricNumber,
+            votedAt: data.votedAt,
+            code: data.receiptCode,
+            rows: ballot.positions.map((position, index) => ({ position: position.name, name: position.cands[ballot.picks[index]].name }))
+        }, "light"), `vote-receipt-${data.receiptCode}.png`, "Your vote receipt. Save it as proof that you voted.");
         return send(chatId, `Your vote has been recorded.\nReceipt code: ${data.receiptCode}\nKeep it as proof that you voted. It does not show who you voted for.`, BACK_ROW);
     }
     if (response.statusCode === 409) { setStep(session, "idle", {}); return send(chatId, data.message || "You have already voted."); }

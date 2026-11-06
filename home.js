@@ -4,7 +4,9 @@ import { collection, query, where, getDocs, doc, getDoc } from "https://www.gsta
 const $ = id => document.getElementById(id);
 const ui = { election: $("home-election"), stats: $("home-stats"), timeline: $("home-timeline"), candidates: $("home-candidates"), announcements: $("home-announcements"), status: $("home-status") };
 const toMs = value => value?.toMillis ? value.toMillis() : value ? new Date(value).getTime() : 0;
-const dateLabel = value => value ? new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "To be announced";
+const dateLabel = value => { const t = toMs(value); return t ? new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "To be announced"; };
+/* After an election ends the dashboard shows its result link for this long, then goes back to normal. */
+const RESULTS_WINDOW_MS = 2 * 60 * 60 * 1000;
 const matricKey = value => String(value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 async function getJson(path) {
@@ -52,7 +54,7 @@ function makeTimeline(stageIndex, labels) {
   panel.append(track); wrap.append(panel); return wrap;
 }
 
-function renderElection(election, overview, stage, actionHref, actionText) {
+function renderElection(election, overview, stage, actionHref, actionText, voting) {
   ui.election.replaceChildren();
   const hero = el("section", "election-hero");
   const statusText = ["APPLICATIONS OPEN", "SCREENING IN PROGRESS", "VOTING OPEN", "RESULTS AVAILABLE"][stage] || "ELECTION UPDATE";
@@ -96,13 +98,40 @@ function renderElection(election, overview, stage, actionHref, actionText) {
   } else if (stage === 3 && end) {
     hero.append(el("p", "election-subtitle", `Voting closed ${new Date(end).toLocaleString()}.`));
   }
-  if (actionHref) { const action = el("a", "hero-action", actionText); action.href = actionHref; hero.append(action); }
+  if (stage === 2 && voting?.known && voting.hasVoted) hero.append(el("p", "hero-note", "You have voted."));
+  else if (stage === 2 && voting?.known && !voting.eligible) hero.append(el("p", "hero-note", "Not eligible to vote in this election"));
+  else if (actionHref) { const action = el("a", "hero-action", actionText); action.href = actionHref; hero.append(action); }
   ui.election.append(hero);
   const positions = overview?.totalPositions ?? 0;
   const candidates = overview?.totalCandidates ?? 0;
   ui.stats.replaceChildren(makeStats(positions, candidates, ["Applications", "Screening", "Voting", "Results"][stage] || "Pending"));
 }
 
+async function loadVotingState(election) {
+  /* The matric number in the signed token survives new tabs and refreshes; sessionStorage does not. */
+  const claim = String((await auth.currentUser.getIdTokenResult()).claims.matricNumber || "").trim().toUpperCase();
+  if (!claim || !election || !["published", "ended"].includes(election.status)) return { known: false };
+  const voterId = `${election.id}_${matricKey(claim)}`;
+
+  /* The rules deny a read of a record that is missing or belongs to someone else, so "permission-denied" here means "no such record for you". */
+  const exists = async (name) => {
+    try {
+      const snap = await getDoc(doc(db, name, voterId));
+      return snap.exists() ? snap.data() : null;
+    } catch (error) {
+      if (error.code === "permission-denied") return null;
+      throw error;
+    }
+  };
+
+  try {
+    const [vote, voter] = await Promise.all([exists("votes"), exists("voters")]);
+    return { known: true, hasVoted: Boolean(vote), eligible: Boolean(voter) && voter.status === "active" };
+  } catch (error) {
+    console.warn("Personal vote status unavailable:", error.code || error.message);
+    return { known: false };
+  }
+}
 async function loadPublishedElections() {
   const snap = await getDocs(query(collection(db, "elections"), where("status", "in", ["published", "ended"])));
   return snap.docs.map(d => ({ id: d.id, ...d.data(), startMs: toMs(d.data().startAt), endMs: toMs(d.data().endAt) }));
@@ -159,26 +188,17 @@ async function renderAnnouncements() {
 async function renderStatus(election, forms, me) {
   const wrap = section("My status", null);
   const grid = el("div", "status-grid");
-  const matric = sessionStorage.getItem("studentMatricNumber") || "";
-  let hasVoted = false, eligible = false;
-  if (election && matric && ["published", "ended"].includes(election.status)) {
-    const voterId = `${election.id}_${matricKey(matric)}`;
-    try {
-      const [vote, voter] = await Promise.all([getDoc(doc(db, "votes", voterId)), getDoc(doc(db, "voters", voterId))]);
-      hasVoted = vote.exists(); eligible = voter.exists() && voter.data().status === "active";
-    } catch (error) { console.warn("Personal vote status unavailable:", error.code || error.message); }
-  }
-  const votePanel = el("div", "status-panel" + (hasVoted ? " applied" : eligible ? " pending" : ""));
-  votePanel.append(el("span", "status-label", hasVoted ? "VOTED" : eligible ? "NOT VOTED" : "VOTING STATUS"));
-  votePanel.append(el("strong", "", hasVoted ? "Your vote is recorded" : eligible ? "Your vote" : "No active ballot"));
-  votePanel.append(el("p", "", hasVoted ? "Your ballot has been submitted." : eligible ? "You are eligible to vote. Open the election before it closes." : "Your eligibility will appear when an election is open."));
-  grid.append(votePanel);
 
-  const application = (forms.applications || []).slice().sort((a, b) => Number(b.status === "applied") - Number(a.status === "applied"))[0];
+  const apps = (forms.applications || []).slice().sort((a, b) =>
+    Number(b.electionId === election?.id) - Number(a.electionId === election?.id) || Number(b.status === "applied") - Number(a.status === "applied"));
+  const application = apps[0];
+  const onBallot = application && application.status === "applied" && ["published", "ended"].includes(application.electionStatus);
   const appPanel = el("div", "status-panel" + (application ? " applied" : ""));
-  appPanel.append(el("span", "status-label", application ? application.status.toUpperCase() : "APPLICATIONS"));
+  appPanel.append(el("span", "status-label", !application ? "APPLICATIONS" : onBallot ? "CANDIDATE" : application.status.toUpperCase()));
   appPanel.append(el("strong", "", application ? application.position : "Your application"));
-  appPanel.append(el("p", "", application ? `${application.electionTitle || "Election"} · ${application.status === "applied" ? "Under screening" : application.status}` : (forms.offers || []).length ? "Applications are open. Apply for an available position." : "No submitted applications."));
+  const appLine = !application ? ((forms.offers || []).length ? "Applications are open. Apply for an available position." : "No application period is open right now.")
+    : application.status === "disqualified" ? "Disqualified" : onBallot ? "On the ballot" : "Under screening";
+  appPanel.append(el("p", "", application ? `${application.electionTitle || "Election"} · ${appLine}` : appLine));
   grid.append(appPanel);
 
   if (me?.offices?.length) {
@@ -200,7 +220,7 @@ async function init() {
   const now = Date.now();
   const live = elections.filter(e => e.status === "published" && e.startMs <= now && now < e.endMs).sort((a, b) => a.endMs - b.endMs)[0];
   const upcoming = elections.filter(e => e.status === "published" && e.startMs > now).sort((a, b) => a.startMs - b.startMs)[0];
-  const ended = elections.filter(e => e.status === "ended" || (e.status === "published" && e.endMs && e.endMs <= now)).sort((a, b) => b.endMs - a.endMs)[0];
+  const ended = elections.filter(e => (e.status === "ended" || (e.status === "published" && e.endMs && e.endMs <= now)) && e.endMs && now - e.endMs < RESULTS_WINDOW_MS).sort((a, b) => b.endMs - a.endMs)[0];
   const applicationOffer = (forms.offers || [])[0];
   let election = live || upcoming || ended || null;
   let stage = live ? 2 : upcoming ? 1 : ended ? 3 : -1;
@@ -212,10 +232,11 @@ async function init() {
   if (election) {
     const actionHref = stage === 0 ? "student-applications.html" : stage === 3 ? `results.html?id=${encodeURIComponent(election.id)}` : `voter-portal.html`;
     const actionText = stage === 0 ? "APPLY FOR A POSITION" : stage === 3 ? "VIEW RESULTS" : stage === 2 ? "VOTE NOW" : "VIEW ELECTION";
-    renderElection(election, overview, stage, actionHref, actionText);
+    const voting = stage === 2 ? await loadVotingState(election) : { known: false };
+    renderElection(election, overview, stage, actionHref, actionText, voting);
     const labels = stage === 0 ? ["Open", "Next", "Upcoming", "Upcoming"] : stage === 1 ? ["Completed", "Completed", dateLabel(election.startAt), dateLabel(election.endAt)] : stage === 2 ? ["Completed", "Completed", `${dateLabel(election.startAt)} – ${dateLabel(election.endAt)}`, "Upcoming"] : ["Completed", "Completed", "Completed", dateLabel(election.endAt)];
     ui.timeline.replaceChildren(makeTimeline(stage, labels));
-    await renderCandidates(election, overview);
+    if (stage === 3) ui.candidates.replaceChildren(); else await renderCandidates(election, overview);
   } else {
     const emptyHero = el("section", "election-hero election-empty");
     emptyHero.append(el("h2", "", "No active elections"));

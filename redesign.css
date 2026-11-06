@@ -650,9 +650,85 @@ button, .vote-button, .login-button, .primary-btn, .add-btn, .lookup-btn, .secon
 .admin-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; }
 .admin-top .admin-slots { margin: 0; }
 .admin-top .invite-open { flex: none; width: auto !important; min-height: 38px; padding: 8px 16px; font-size: .9rem; }
-.invite-dialog { margin: auto !important; width: min(92vw, 420px); max-height: 90vh; overflow-y: auto; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface); color: var(--text); }
-.invite-dialog::backdrop { background: rgba(0, 0, 0, .55); }
-.invite-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.invite-head h2 { margin: 0; font-size: 1.2rem; }
-.invite-close { flex: none; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
-.invite-close:hover { color: var(--text); }
+.popup { margin: auto !important; width: min(92vw, 420px); max-height: 90vh; overflow-y: auto; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface); color: var(--text); }
+.popup::backdrop { background: rgba(0, 0, 0, .55); }
+.popup-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.popup-head h2 { margin: 0; font-size: 1.2rem; }
+.popup-close { flex: none; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.popup-close:hover { color: var(--text); }
+
+/* Buttons and panels that stayed white or low contrast in one of the themes */
+.forms-ghost, .remove-candidate-btn {
+  background: transparent !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line) !important;
+}
+.forms-ghost:hover:not(:disabled), .remove-candidate-btn:hover:not(:disabled) {
+  background: var(--surface-soft) !important;
+  border-color: var(--primary) !important;
+  color: var(--text) !important;
+}
+.forms-danger, .remove-candidate-btn { color: var(--danger) !important; }
+.forms-danger:hover:not(:disabled), .remove-candidate-btn:hover:not(:disabled) { color: var(--danger) !important; border-color: var(--danger) !important; }
+.admin-status-btn, .logout-button.admin-status-btn { background: var(--action-bg) !important; color: var(--action-text) !important; border: 1px solid transparent !important; }
+.import-instructions, .import-summary { color: var(--text) !important; }
+.import-instructions pre { background: var(--surface-soft) !important; color: var(--text) !important; }
+.admin-table { background: var(--surface) !important; }
+.student-menu .menu-logout { background: transparent !important; color: var(--danger) !important; }
+
+/* election picker */
+.pick-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); color: var(--text); text-decoration: none; }
+.pick-row:first-child { border-top: 0; padding-top: 4px; }
+.pick-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pick-text strong { font-size: 1.05rem; }
+.pick-text span { font-size: .9rem; color: var(--muted); }
+.pick-arrow { flex: none; color: var(--muted); font-size: 1.2rem; }
+.pick-empty { margin: 0 0 14px; color: var(--muted); }
+.pick-create { display: inline-block; padding: 10px 18px; border-radius: var(--radius-control); background: var(--action-bg); color: var(--action-text); font-weight: 700; text-decoration: none; }
+
+.popup.wide { width: min(94vw, 560px); }
+.popup .form-actions { display: grid; gap: 10px; margin-top: 8px; }
+
+/* PIN boxes are text fields masked with CSS so password managers leave them alone */
+.pin-box, input[aria-label*="PIN digit"] { -webkit-text-security: disc; text-security: disc; }
+
+/* candidate list and profile */
+.candidate-directory-list { display: flex; flex-direction: column; }
+.candidate-directory-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); text-decoration: none; }
+.candidate-directory-row:first-child { border-top: 0; }
+.candidate-directory-row img { flex: none; width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.candidate-directory-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.candidate-directory-info strong { font-size: 1rem; overflow-wrap: anywhere; }
+.candidate-directory-info small { font-size: .85rem; }
+.candidate-arrow { flex: none; color: var(--muted); }
+.candidate-profile-intro { display: flex; align-items: center; gap: 16px; margin: 0 0 20px; }
+.candidate-profile-photo { flex: none; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; }
+.candidate-profile-who { min-width: 0; }
+.candidate-profile-who h1 { margin: 0 0 2px; font-size: 1.4rem; line-height: 1.2; overflow-wrap: anywhere; }
+.candidate-profile-position { margin: 0; color: var(--muted); }
+.candidate-mandate-section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); padding: 20px; }
+.candidate-mandate-section h2 { margin: 0 0 10px; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.candidate-mandate-section .candidate-manifesto { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.profile-upload-actions { display: flex; gap: 10px; margin-top: 12px; }
+.profile-upload-actions[hidden] { display: none; }
+.election-hero .hero-note { margin: 14px 0 0; font-weight: 700; }
+
+/* Vote receipt card */
+.rcpt { max-width: 420px; margin: 0 auto 16px; padding: 24px 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-soft); text-align: center; }
+.rcpt-logo { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+.rcpt-status { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; font-size: 1.15rem; }
+.rcpt-check { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #2e9e6b; color: #fff; font-size: .8rem; font-weight: 700; }
+.rcpt-time { margin: 4px 0 18px; color: var(--muted); font-size: .9rem; }
+.rcpt-rows { margin: 0; padding: 4px 0; border-top: 1px dashed var(--line); text-align: left; }
+.rcpt-rows + .rcpt-heading, .rcpt-heading { margin: 16px 0 0; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: left; }
+.rcpt-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 10px 0; }
+.rcpt-row dt { margin: 0; color: var(--muted); font-size: .92rem; }
+.rcpt-row dd { margin: 0; text-align: right; font-weight: 700; overflow-wrap: anywhere; }
+.rcpt-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92rem; }
+.rcpt-note { margin: 14px 0 0; color: var(--muted); font-size: .85rem; }
+.rcpt-download { width: 100%; margin-top: 16px; min-height: 46px; border: 0; border-radius: var(--radius-control); background: var(--action-bg); color: var(--action-text); font-weight: 700; cursor: pointer; }
+.receipt-history-list { display: flex; flex-direction: column; gap: 16px; }
+.rcpt-logo { display: block; margin: 0 auto; }
+.rcpt-heading { margin-bottom: 6px !important; }
+

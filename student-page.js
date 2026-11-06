@@ -1,4 +1,4 @@
-import { auth, db, waitUser } from "./nunsa-client.js";
+import { auth, db, waitUser, noticesApi } from "./nunsa-client.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
@@ -50,6 +50,8 @@ export async function initStudentPage() {
   const level = student.academicLevel || student.level || student.currentLevel || "Level not set";
   const picture = student.profilePicture || DEFAULT_PROFILE;
 
+  const officesPromise = noticesApi(null, "?me=1").then(me => (me && me.offices) || []).catch(() => []);
+
   const nameNode = document.getElementById("student-name");
   const matricNode = document.getElementById("profile-matric");
   const levelNode = document.getElementById("student-level");
@@ -58,6 +60,19 @@ export async function initStudentPage() {
   if (matricNode) matricNode.textContent = matric;
   if (levelNode) levelNode.textContent = level;
   if (avatar) { avatar.src = picture; avatar.onerror = () => { avatar.src = DEFAULT_PROFILE; }; }
+
+  const offices = await officesPromise;
+  const officeText = offices.map(o => o.position).join(", ");
+  const metaNode = levelNode ? levelNode.parentElement : null;
+  if (officeText && metaNode && !document.getElementById("student-office")) {
+    const dot = document.createElement("span");
+    dot.setAttribute("aria-hidden", "true");
+    dot.textContent = "·";
+    const office = document.createElement("span");
+    office.id = "student-office";
+    office.textContent = `Current ${officeText}`;
+    metaNode.append(dot, office);
+  }
 
   const logout = document.getElementById("student-logout-btn");
   if (logout && !logout.dataset.bound) {
@@ -77,5 +92,5 @@ export async function initStudentPage() {
     });
   }
 
-  return { user, student, studentDocumentId, matricNumber: matric, name, level, profilePicture: picture };
+  return { user, student, studentDocumentId, matricNumber: matric, name, level, profilePicture: picture, offices };
 }

@@ -62,6 +62,7 @@ async function loadOffers(student) {
             electionTitle: electionSnap.exists
                 ? String(electionSnap.data().title || "")
                 : String(app.electionTitle || ""),
+            electionStatus: electionSnap.exists ? String(electionSnap.data().status || "draft") : "",
             position: app.position,
             status: app.status,
             disqualifiedReason: app.status === "disqualified" ? String(app.disqualifiedReason || "") : undefined

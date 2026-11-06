@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="#faf9f5" media="(prefers-color-scheme: light)" name="theme-color"/><meta content="#0d1517" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Choose an election - NUNSA-FUD</title>
+<link href="style.css" rel="stylesheet"/>
+<link href="theme.css" rel="stylesheet"/>
+<link href="redesign.css" rel="stylesheet"/>
+</head>
+<body class="nunsa-page page-select-election">
+<header class="admin-header editorial-topbar">
+<div class="admin-header-left brand-lockup">
+<img alt="NUNSA Logo" class="admin-logo" src="assets/nunsa-logo.png"/>
+<div>
+<h1>NUNSA-FUD</h1>
+<p>Choose an election</p>
+</div>
+</div>
+<button class="secondary-btn" id="back-btn" type="button">BACK</button>
+</header>
+<main class="admin-container editorial-page">
+<section class="page-intro" data-motion="rise"><h2 class="drop-headline" id="pick-title">Choose an election</h2></section>
+<section class="dashboard-section" data-motion="rise">
+<div id="pick-list">Loading elections...</div>
+</section>
+</main>
+<script src="select-election.js" type="module"></script>
+<script defer src="motion.js"></script><script src="theme.js" type="module"></script>
+</body>
+</html>

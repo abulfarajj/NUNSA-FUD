@@ -682,6 +682,27 @@ const ADMIN = "admin1|admin@nunsa.org";
         eq((await get({ electionId: "E1", candidateId: "c2" })).status, 404, "disqualified candidate reachable by id");
     });
 
+    console.log("\n== Pixel images (Telegram bot) ==");
+    await test("the receipt image is a valid PNG, 696 pixels wide, and handles accents and curly quotes", async () => {
+        const { receiptPng } = require("../netlify/functions/_lib/pixel-image");
+        const png = receiptPng({ election: "Élection test", matric: "BMS/NUR/24/1004", votedAt: "2026-11-05T22:10:00.000Z", code: "NUNSA-AA55A649", rows: [{ position: "President", name: "AHMAD ALMA\u2019MUN \u00c9MILE" }] }, "light");
+        eq(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+        eq(png.readUInt32BE(16), 696);
+        ok(png.readUInt32BE(20) > 600, "image has height");
+        const zlib = require("zlib");
+        const idat = png.indexOf("IDAT");
+        const length = png.readUInt32BE(idat - 4);
+        const raw = zlib.inflateSync(png.subarray(idat + 4, idat + 4 + length));
+        eq(raw.length, (696 * 3 + 1) * png.readUInt32BE(20));
+    });
+    await test("the results image works with ties, zero votes and an empty election", async () => {
+        const { resultsPng } = require("../netlify/functions/_lib/pixel-image");
+        const full = resultsPng({ totalVotes: 2, election: { title: "Test" }, positions: [{ position: "Secretary", totalVotes: 2, candidates: [{ id: "a", name: "A", votes: 1, percentage: 50 }, { id: "b", name: "B", votes: 1, percentage: 50 }, { id: "c", name: "C", votes: 0, percentage: 0 }] }] }, "dark");
+        eq(full.subarray(1, 4).toString(), "PNG");
+        const empty = resultsPng({ positions: [] }, "light");
+        eq(empty.subarray(1, 4).toString(), "PNG");
+    });
+
     console.log("\n== Admin invitation expiry ==");
     await test("a fresh invitation works; its expiry is set 7 days ahead", async () => {
         seedAdmins();

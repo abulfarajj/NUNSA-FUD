@@ -79,10 +79,10 @@
             Enter your 4-digit PIN to authorize this vote.
         </p>
 <div class="digit-input-group" id="vote-pin-group">
-<input aria-label="PIN digit 1" autocomplete="one-time-code" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="PIN digit 2" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="PIN digit 3" inputmode="numeric" maxlength="1" type="password"/>
-<input aria-label="PIN digit 4" inputmode="numeric" maxlength="1" type="password"/>
+<input aria-label="PIN digit 1" autocomplete="off" inputmode="numeric" maxlength="1" type="text"/>
+<input autocomplete="off" aria-label="PIN digit 2" inputmode="numeric" maxlength="1" type="text"/>
+<input autocomplete="off" aria-label="PIN digit 3" inputmode="numeric" maxlength="1" type="text"/>
+<input autocomplete="off" aria-label="PIN digit 4" inputmode="numeric" maxlength="1" type="text"/>
 </div>
 <button class="vote-button" id="confirm-vote-btn" type="button">
             CONFIRM VOTE
@@ -109,6 +109,7 @@
 </footer>
 <script src="voting.js" type="module">
 </script>
+<script src="pin-mask.js"></script>
 <script defer="True" src="motion.js"></script><script src="theme.js" type="module"></script>
 <script src="student-nav.js" type="module"></script>
 </body>
