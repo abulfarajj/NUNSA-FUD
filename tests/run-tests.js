@@ -638,6 +638,27 @@ const ADMIN = "admin1|admin@nunsa.org";
         eq((await announce({ action: "delete", id: made.id }, studentToken())).status, 403, "student deleted");
         eq((await announce({ action: "delete", id: made.id })).status, 200); eq((await feed()).announcements.length, 0);
     });
+    await test("announcements: a winner holds the office 2 hours after voting ends, and can then post", async () => {
+        seedAdmins(); seedStudent({ withAccount: true });
+        const endedHoursAgo = hours => {
+            const now = Date.now();
+            store.set("elections/E9", { title: "Test 9", status: "published", startAt: Timestamp.fromMillis(now - (hours + 3) * 3600e3), endAt: Timestamp.fromMillis(now - hours * 3600e3) });
+            store.set("candidates/w1", { electionId: "E9", position: "President", name: "Real Student", matricNumber: MATRIC, status: "active" });
+            store.set("candidates/w2", { electionId: "E9", position: "President", name: "Other", matricNumber: "OTHER/1", status: "active" });
+            store.set("votes/E9_A", { electionId: "E9", matricNumber: "A/1", authUid: "a", selections: [{ position: "President", candidateId: "w1" }] });
+            store.set("votes/E9_B", { electionId: "E9", matricNumber: "B/1", authUid: "b", selections: [{ position: "President", candidateId: "w1" }] });
+        };
+        endedHoursAgo(1);
+        let me = await call("announcements.js", { method: "GET", token: studentToken(), query: { me: "1" } });
+        eq(me.status, 200, me.message); eq(me.offices.length, 0, "office given before 2 hours"); eq(me.canPost, false);
+        endedHoursAgo(2.5);
+        const list = await feed();
+        eq(list.status, 200, list.message); eq(list.canPost, true, "winner cannot post"); eq(list.announcements.length, 0);
+        me = await call("announcements.js", { method: "GET", token: studentToken(), query: { me: "1" } });
+        eq(me.offices.length, 1); eq(me.offices[0].position, "President");
+        const made = await announce(post({ authorPosition: "President", authorName: "Real Student" }), studentToken());
+        eq(made.status, 200, made.message);
+    });
     await test("announcements: validation (title, names, text or image) and image rules", async () => {
         seedAdmins();
         eq((await announce(post({ title: "" }))).status, 400);

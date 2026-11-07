@@ -4,66 +4,73 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="#faf9f5" media="(prefers-color-scheme: light)" name="theme-color"/><meta content="#0d1517" media="(prefers-color-scheme: dark)" name="theme-color"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <title>NUNSA-FUD Election Administration</title>
 <link href="style.css" rel="stylesheet"/>
 <link href="theme.css" rel="stylesheet"/>
 <link href="redesign.css" rel="stylesheet"/>
 </head>
-<body class="nunsa-page page-admin">
-<header class="admin-header editorial-topbar">
-<div class="admin-header-left brand-lockup">
-<img alt="NUNSA Logo" class="association-logo" src="assets/nunsa-logo.png"/>
-<div>
-<h1>NUNSA-FUD</h1>
-<p>Election Administration</p>
-</div>
-</div>
-<button class="logout-button" id="logout-btn" type="button">
-        Logout
-    </button>
+<body class="nunsa-page page-admin student-app has-student-bottom-nav">
+<header class="student-header editorial-topbar">
+  <div class="student-identity">
+    <div class="admin-avatar" id="admin-avatar" aria-hidden="true">A</div>
+    <div class="student-identity-copy">
+      <p class="greeting">Hi, <strong id="admin-name">Loading...</strong></p>
+      <p class="student-meta"><span class="role-badge" id="admin-role">Loading...</span></p>
+    </div>
+  </div>
+  <div class="student-header-actions">
+    <button class="header-icon-button" id="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false"><span aria-hidden="true">☰</span></button>
+  </div>
+  <div class="student-menu" id="student-menu" hidden>
+    <span class="menu-label">Appearance</span>
+    <div class="theme-seg" role="group" aria-label="Appearance">
+      <button type="button" data-theme-choice="system" aria-pressed="false">Auto</button>
+      <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
+    </div>
+    <button class="menu-logout" id="logout-btn" type="button">Log out</button>
+  </div>
 </header>
-<main class="admin-dashboard editorial-page layout-admin dashboard-page">
-  <section class="page-intro" data-motion="rise">
-    <h2 aria-label="Admin dashboard" class="drop-headline">Admin dashboard</h2>
-    </section>
-  <section class="admin-welcome-card admin-welcome-line" data-motion="rise">
-    <p class="small-label">SIGNED IN AS</p>
-    <h2 id="admin-name">Loading...</h2>
-    <span class="role-badge" id="admin-role">Loading...</span>
+<main class="student-home container">
+  <section class="election-hero" id="admin-hero" aria-live="polite">
+    <h2 id="admin-hero-title">Loading elections…</h2>
+    <p class="election-subtitle" id="admin-hero-sub"></p>
+    <div class="admin-hero-stats" id="admin-hero-stats"></div>
+    <button class="hero-action" id="admin-hero-action" type="button" hidden></button>
   </section>
-  <section class="dashboard-section" data-motion="rise">
+  <section class="home-section quick-section">
     <div class="section-heading"><div><h2>Election operations</h2></div></div>
-    <div class="dashboard-grid admin-link-list">
-      <button class="dashboard-card" id="elections-btn" type="button"><span class="card-index">01</span><span class="admin-link-copy"><h3>Elections</h3><p>Create elections and manage their lifecycle.</p></span><span class="card-arrow">↗</span></button>
-      <button class="dashboard-card" id="forms-btn" type="button"><span class="card-index">02</span><span class="admin-link-copy"><h3>Applications and screening</h3><p>Open applications and review candidate eligibility.</p></span><span class="card-arrow">↗</span></button>
-      <button class="dashboard-card" id="candidates-btn" type="button"><span class="card-index">03</span><span class="admin-link-copy"><h3>Candidates</h3><p>Review the candidate list for an election.</p></span><span class="card-arrow">↗</span></button>
-      <button class="dashboard-card" id="voters-btn" type="button"><span class="card-index">04</span><span class="admin-link-copy"><h3>Voter register</h3><p>Manage eligible voters for an election.</p></span><span class="card-arrow">↗</span></button>
-      <button class="dashboard-card" id="results-btn" type="button"><span class="card-index">05</span><span class="admin-link-copy"><h3>Election results</h3><p>Review live outcomes and published results.</p></span><span class="card-arrow">↗</span></button>
+    <div class="admin-grid">
+      <button class="admin-tile" id="elections-btn" type="button"><span class="quick-icon icon-teal" aria-hidden="true">◉</span><strong>Elections</strong><small>Create elections and manage their lifecycle.</small></button>
+      <button class="admin-tile" id="forms-btn" type="button"><span class="quick-icon icon-gold" aria-hidden="true">▤</span><strong>Applications and screening</strong><small>Open applications and review candidate eligibility.</small></button>
+      <button class="admin-tile" id="candidates-btn" type="button"><span class="quick-icon icon-mint" aria-hidden="true">♧</span><strong>Candidates</strong><small>Review the candidate list for an election.</small></button>
+      <button class="admin-tile" id="voters-btn" type="button"><span class="quick-icon icon-sky" aria-hidden="true">▥</span><strong>Voter register</strong><small>Manage eligible voters for an election.</small></button>
+      <button class="admin-tile" id="results-btn" type="button"><span class="quick-icon icon-coral" aria-hidden="true">▧</span><strong>Election results</strong><small>Review live outcomes and published results.</small></button>
     </div>
   </section>
-  <section class="dashboard-section" data-motion="rise">
+  <section class="home-section quick-section">
     <div class="section-heading"><div><h2>Students and announcements</h2></div></div>
-    <div class="dashboard-grid admin-link-list">
-      <button class="dashboard-card" id="students-btn" type="button"><span class="card-index">06</span><span class="admin-link-copy"><h3>Student records</h3><p>Manage student profiles and academic levels.</p></span><span class="card-arrow">↗</span></button>
-      <button class="dashboard-card" id="announcements-btn" type="button"><span class="card-index">07</span><span class="admin-link-copy"><h3>Announcements</h3><p>Publish notices and manage official updates.</p></span><span class="card-arrow">↗</span></button>
+    <div class="admin-grid">
+      <button class="admin-tile" id="students-btn" type="button"><span class="quick-icon icon-teal" aria-hidden="true">♙</span><strong>Student records</strong><small>Manage student profiles and academic levels.</small></button>
+      <button class="admin-tile" id="announcements-btn" type="button"><span class="quick-icon icon-gold" aria-hidden="true">✉</span><strong>Announcements</strong><small>Publish notices and manage official updates.</small></button>
     </div>
   </section>
-  <section class="dashboard-section" data-motion="rise" id="super-admin-section" style="display:none">
+  <section class="home-section quick-section" id="super-admin-section" style="display:none">
     <div class="section-heading"><div><h2>Super administrator</h2></div></div>
-    <div class="dashboard-grid admin-link-list">
-      <button class="dashboard-card" id="admin-management-btn" type="button"><span class="card-index">08</span><span class="admin-link-copy"><h3>Administrator management</h3><p>Manage administrator invitations and permissions.</p></span><span class="card-arrow">↗</span></button>
+    <div class="admin-grid">
+      <button class="admin-tile" id="admin-management-btn" type="button"><span class="quick-icon icon-sky" aria-hidden="true">⚙</span><strong>Administrator management</strong><small>Manage administrator invitations and permissions.</small></button>
     </div>
   </section>
 </main>
-<footer>
-<p>
-        NUNSA-FUD Electronic Voting System
-    </p>
-</footer>
-<script src="admin.js" type="module">
-</script>
-<script defer="True" src="motion.js"></script>
+<nav class="student-bottom-nav" aria-label="Admin navigation">
+  <a href="admin.html" aria-current="page"><span class="tab-icon" aria-hidden="true">⌂</span><span>Home</span></a>
+  <a href="elections.html"><span class="tab-icon" aria-hidden="true">▤</span><span>Elections</span></a>
+  <a href="students.html"><span class="tab-icon" aria-hidden="true">♙</span><span>Students</span></a>
+  <a href="admin-announcements.html"><span class="tab-icon" aria-hidden="true">✉</span><span>Notices</span></a>
+</nav>
+<script src="admin.js" type="module"></script>
+<script defer src="motion.js"></script>
 <script src="theme.js" type="module"></script>
 </body>
 </html>

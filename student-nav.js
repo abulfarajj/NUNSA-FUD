@@ -45,7 +45,7 @@ if (header && !header.querySelector(".student-desktop-nav")) {
     nav.append(a);
   });
   const actions = header.querySelector(".student-header-actions, .logout-button");
-  if (actions) header.insertBefore(nav, actions);
+  if (actions && actions.parentNode) actions.parentNode.insertBefore(nav, actions);
   else header.append(nav);
 }
 

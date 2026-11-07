@@ -108,7 +108,11 @@ exports.handler = async function (event) {
         if (who.error) return fail(who.error[0], who.error[1]);
         const col = db.collection("announcements");
         const isAdmin = who.role === "admin";
-        const offices = who.role === "student" ? await officesFor(who.student) : [];
+        let offices = [];
+        if (who.role === "student") {
+            try { offices = await officesFor(who.student); }
+            catch (error) { logError("Office lookup failed", error); }
+        }
         const canPost = isAdmin || offices.length > 0;
         const q = event.queryStringParameters || {};
         if (event.httpMethod === "GET" && q.me) {

@@ -22,7 +22,7 @@ async function showFeed() {
     if (!data.success) { say(data.message || "Unable to load.", "error"); return; }
     // Identify students from the signed Firebase token, not tab-scoped storage.
     // This also works when announcements was opened in a fresh browser tab.
-    const token = await user.getIdTokenResult();
+    const token = await auth.currentUser.getIdTokenResult();
     const isStudent = typeof token.claims.matricNumber === "string" && !!token.claims.matricNumber;
     back.href = isStudent ? "/student-dashboard.html" : (data.canManage ? "/admin.html" : "/index.html");
     feed.replaceChildren();
@@ -97,5 +97,5 @@ async function showOne(id) {
         gate.hidden = false; return;
     }
     try { if (id) await showOne(id); else await showFeed(); }
-    catch { say("Unable to load announcements. Check your connection.", "error"); }
+    catch (error) { console.error("Announcements failed:", error); say("Unable to load announcements. Check your connection.", "error"); }
 })();
