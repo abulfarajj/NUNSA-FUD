@@ -754,3 +754,18 @@ button, .vote-button, .login-button, .primary-btn, .add-btn, .lookup-btn, .secon
 .admin-tile small { grid-column: 1 / -1; font-size: .72rem; line-height: 1.3; color: var(--muted); }
 .admin-tile:hover { border-color: var(--primary); }
 @media (min-width: 720px) { .admin-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Privacy page */
+.privacy-main { max-width: 640px !important; }
+.privacy h3 { margin: 22px 0 6px; font-size: 1.05rem; }
+.privacy p, .privacy li { color: var(--text); line-height: 1.55; }
+.privacy ul { margin: 0; padding-left: 20px; }
+.privacy .auth-btn { margin-top: 26px !important; }
+
+/* Loading and retry */
+@keyframes nunsa-spin { to { transform: rotate(360deg); } }
+@keyframes nunsa-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+.is-loading { animation: nunsa-pulse 1.4s ease-in-out infinite; }
+.is-loading::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 8px; border: 2px solid var(--line); border-top-color: var(--primary); border-radius: 50%; vertical-align: -2px; animation: nunsa-spin .8s linear infinite; }
+.retry-btn { display: block; margin: 10px 0 0; padding: 8px 16px; border: 1px solid var(--line); border-radius: var(--radius-control); background: transparent; color: var(--text); font-weight: 600; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .is-loading, .is-loading::before { animation: none; } }

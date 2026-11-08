@@ -724,6 +724,28 @@ const ADMIN = "admin1|admin@nunsa.org";
         eq(empty.subarray(1, 4).toString(), "PNG");
     });
 
+    console.log("\n== Visit counter and posting limit ==");
+    await test("track counts a public-page visit per day, rejects anything else, and limits one source", async () => {
+        const track = body => fn("track.js").handler({ httpMethod: "POST", headers: { "x-nf-client-connection-ip": "9.9.9.9" }, body: JSON.stringify(body) });
+        const day = new Date(Date.now() + 3600e3).toISOString().slice(0, 10);
+        eq((await track({ page: "home" })).statusCode, 204);
+        eq((await track({ page: "home" })).statusCode, 204);
+        eq((await track({ page: "privacy" })).statusCode, 204);
+        const doc = store.get(`analytics/${day}`);
+        eq(doc.total, 3); eq(doc.pages.home, 2); eq(doc.pages.privacy, 1);
+        eq((await track({ page: "admin" })).statusCode, 400, "private pages must never be counted");
+        eq((await fn("track.js").handler({ httpMethod: "GET", headers: {} })).statusCode, 405);
+        let last = 204;
+        for (let i = 0; i < 125; i++) last = (await track({ page: "home" })).statusCode;
+        eq(last, 429);
+    });
+    await test("announcements: posting is limited to 30 changes an hour per person", async () => {
+        seedAdmins();
+        let last = 200;
+        for (let i = 0; i < 32; i++) last = (await call("announcements.js", { token: ADMIN, body: { action: "create", title: "T" + i, body: "Hello", authorName: "Chi Nwosu", authorPosition: "Electoral Committee" } })).status;
+        eq(last, 429);
+    });
+
     console.log("\n== Admin invitation expiry ==");
     await test("a fresh invitation works; its expiry is set 7 days ahead", async () => {
         seedAdmins();

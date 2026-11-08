@@ -152,7 +152,7 @@ async function renderCandidates(election, overview) {
   overview.candidates.slice(0, 8).forEach(candidate => {
     const link = el("a", "candidate-mini");
     link.href = `candidate.html?electionId=${encodeURIComponent(election.id)}&id=${encodeURIComponent(candidate.id)}`;
-    const img = el("img"); img.src = candidate.profilePicture || "assets/default-profile.jpg"; img.alt = "";
+    const img = el("img"); img.src = candidate.profilePicture || "assets/default-profile.jpg"; img.alt = `Photo of ${candidate.name}`;
     img.onerror = () => { img.src = "assets/default-profile.jpg"; };
     link.append(img, el("strong", "", candidate.name), el("small", "", candidate.position), el("span", "candidate-mandate-link", "Read mandate →"));
     strip.append(link);

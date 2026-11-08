@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /
+Allow: /$
+Allow: /privacy.html
+Allow: /assets/
+Allow: /favicon.ico
+
+Sitemap: https://nunsafud.name.ng/sitemap.xml

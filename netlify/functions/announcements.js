@@ -7,7 +7,7 @@
  * Stored in the server-only `announcements` collection (default-deny rule keeps clients out).
  */
 const admin = require("firebase-admin");
-const { jsonResponse, parseBody, logError } = require("./_lib/guard");
+const { jsonResponse, parseBody, logError, consume, tooManyResponse } = require("./_lib/guard");
 const forms = require("./_lib/forms");
 
 if (!admin.apps.length) {
@@ -138,6 +138,8 @@ exports.handler = async function (event) {
         if (!canPost) return fail(403, "Only administrators and elected office holders can post announcements.");
         const body = parseBody(event);
         if (!body) return fail(400, "Invalid request.");
+        const posting = await consume(`announce:${who.uid}`, 30, 60 * 60 * 1000);
+        if (!posting.allowed) return tooManyResponse(posting.retryAfterSec, "You are posting too fast. Please wait a little.");
         const now = admin.firestore.FieldValue.serverTimestamp();
 
         if (body.action === "create" || body.action === "update") {

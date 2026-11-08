@@ -3,8 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f5f4ef" />
-  <title>My Profile · NUNSA-FUD</title>
+  <title>Profile | NUNSA-FUD</title>
+<meta name="description" content="Your NUNSA-FUD profile and picture."/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="icon" href="/favicon.ico" sizes="48x48"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png"/>
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png"/>
+<link rel="manifest" href="/site.webmanifest"/>
+<meta property="og:site_name" content="NUNSA-FUD"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Profile | NUNSA-FUD"/>
+<meta property="og:description" content="Your NUNSA-FUD profile and picture."/>
+<meta property="og:image" content="https://nunsafud.name.ng/assets/og-image.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="NUNSA-FUD Electronic Voting System"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="theme-color" content="#f5f4ef" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -67,13 +83,14 @@
       <h2 id="avatar-editor-title">Move and scale</h2>
       <button class="popup-close" id="avatar-cancel-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
-    <div class="avatar-stage" id="avatar-stage"><img id="avatar-image" alt="" draggable="false" /><div class="avatar-mask"></div></div>
+    <div class="avatar-stage" id="avatar-stage"><img id="avatar-image" alt="Preview of your new profile picture" draggable="false" /><div class="avatar-mask"></div></div>
     <input aria-label="Zoom" class="avatar-zoom" id="avatar-zoom" max="400" min="100" step="1" type="range" value="100" />
     <div class="avatar-actions"><button class="secondary-btn" id="avatar-cancel" type="button">Cancel</button><button class="primary-btn" id="avatar-save" type="button">Save</button></div>
   </dialog>
-  <footer class="site-footer"><p>NUNSA-FUD Electronic Voting System</p></footer>
+  <footer class="site-footer"><p>NUNSA-FUD Electronic Voting System · <a href="/privacy.html">Privacy</a></p></footer>
   <script src="student-profile.js" type="module"></script>
   <script src="theme.js" type="module"></script>
   <script src="student-nav.js" type="module"></script>
+<script src="/loading.js" defer></script>
 </body>
 </html>
