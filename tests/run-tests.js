@@ -40,7 +40,10 @@ process.env.TELEGRAM_BOT_TOKEN = "123:test-token";
 process.env.TELEGRAM_WEBHOOK_SECRET = "s3cret-webhook";
 global.fetch = async (url, opts) => {
     if (String(url).startsWith("https://api.telegram.org/bot123:test-token/")) {
-        tgCalls.push({ method: String(url).split("/").pop(), payload: JSON.parse(opts.body) });
+        const payload = opts.body instanceof FormData
+            ? { isFormData: true }
+            : JSON.parse(opts.body);
+        tgCalls.push({ method: String(url).split("/").pop(), payload });
         return { ok: true, status: 200, json: async () => ({ ok: true }) };
     }
     sentEmails.push(JSON.parse(opts.body));

@@ -196,3 +196,11 @@
   .auth-card { padding: 28px 18px !important; }
   .auth-card .pin-input-group { gap: 8px; }
 }
+
+/* Landing card: a teal label above the title, and a longer card */
+.page-index .auth-card { min-height: 460px; padding: 38px 24px 34px !important; }
+.page-index .auth-kicker { margin: 0 0 14px; color: var(--primary-strong); font-size: .95rem; font-weight: 700; letter-spacing: .02em; }
+.page-index .auth-card .auth-title { margin-bottom: 8px; }
+.page-index .auth-card .auth-sub { margin-bottom: 30px; }
+.page-index #auth-choice .auth-btn { min-height: 56px !important; margin-top: 16px !important; }
+.page-index .admin-access button { color: var(--text); font-size: .95rem; text-decoration: underline; text-underline-offset: 3px; }

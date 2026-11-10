@@ -1,3 +1,4 @@
+import { kebab } from "./row-menu.js";
 import {
     initializeApp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
@@ -211,11 +212,7 @@ async function loadVoters() {
         item.appendChild(matric);
         item.appendChild(status);
 
-        const removeBtn = document.createElement("button");
-        removeBtn.type = "button";
-        removeBtn.className = "voter-remove-btn";
-        removeBtn.textContent = "Remove";
-        removeBtn.addEventListener("click", async () => {
+        const removeVoter = async (removeItem) => {
             const warning = currentElection && currentElection.status === "published"
                 ? "Voting may be in progress. "
                 : "";
@@ -227,7 +224,7 @@ async function loadVoters() {
                 return;
             }
 
-            removeBtn.disabled = true;
+            removeItem.disabled = true;
 
             try {
                 await callManageVoters({
@@ -238,10 +235,12 @@ async function loadVoters() {
                 await loadVoters();
             } catch (error) {
                 alert(error.message || "Unable to remove this voter.");
-                removeBtn.disabled = false;
+                removeItem.disabled = false;
             }
-        });
-        item.appendChild(removeBtn);
+        };
+        item.appendChild(kebab(`Options for ${voter.matricNumber}`, [
+            { label: "Remove", danger: true, onClick: removeVoter }
+        ]));
 
         voterList.appendChild(item);
     });

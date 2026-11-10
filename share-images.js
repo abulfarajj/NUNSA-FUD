@@ -65,20 +65,10 @@ function shrinkToFit(ctx, text, family, weight, start, floor, maxWidth) {
     return size;
 }
 
-function drawLogo(ctx, logo, cx, cy, radius, palette) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius + 4, 0, Math.PI * 2);
-    ctx.fillStyle = palette.ring;
-    ctx.fill();
-    ctx.restore();
+function drawLogo(ctx, logo, cx, cy, radius) {
     if (!logo) return;
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.drawImage(logo, cx - radius, cy - radius, radius * 2, radius * 2);
-    ctx.restore();
+    const size = radius * 2.3;
+    ctx.drawImage(logo, cx - size / 2, cy - size / 2, size, size);
 }
 
 function drawAvatar(ctx, image, cx, cy, radius, palette, label) {
@@ -107,7 +97,7 @@ function drawAvatar(ctx, image, cx, cy, radius, palette, label) {
 
 /* Logo on the left, wordmark beside it, then a centred kicker, heading and subtitle. Returns the header height. */
 function drawHeader(ctx, width, palette, logo, kicker, heading, subtitle) {
-    drawLogo(ctx, logo, 84, 70, 34, palette);
+    drawLogo(ctx, logo, 84, 70, 34);
     ctx.fillStyle = palette.text;
     ctx.font = `700 22px ${SANS}`;
     spaced(ctx, "NUNSA-FUD", 136, 77, 3, "left");

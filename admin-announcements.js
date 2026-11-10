@@ -1,3 +1,4 @@
+import { kebab } from "./row-menu.js";
 import { waitUser, noticesApi, ago, shareNotice, el } from "./nunsa-client.js";
 
 const $ = id => document.getElementById(id);
@@ -86,6 +87,7 @@ function debounce(fn) { let t; return () => { clearTimeout(t); t = setTimeout(fn
 f.file.onchange = async () => { const file = f.file.files[0]; if (!file) return; image = await fromFile(file); say(image ? "" : "That image is too large.", image ? "" : "error"); showPreview(); };
 
 /* ---- list + actions ---- */
+
 async function reload() {
     const d = await noticesApi();
     if (!d.success) { say(d.message, "error"); return; }
@@ -94,18 +96,24 @@ async function reload() {
     if (!d.announcements.length) f.list.append(el("p", "", "Nothing posted yet."));
     const mineOnly = d.announcements.filter(a => a.canEdit);
     if (!mineOnly.length) f.list.replaceChildren(el("p", "", "Nothing posted by you yet."));
+    f.list.classList.add("note-list");
     for (const a of mineOnly) {
-        const row = el("div", "notice"); row.style.flexDirection = "column";
-        const head = el("div", ""); head.append(el("span", "tag", [a.authorName, a.authorPosition].filter(Boolean).join(" · ") + (a.pinned ? " · Pinned" : "")), el("strong", "", a.title));
-        head.querySelector("strong").style.display = "block";
-        const small = el("small", "", ago(a.createdAt) + (a.hasImage ? " · has image" : "")); small.style.color = "var(--muted)";
-        const acts = el("div", "form-actions"); acts.style.marginTop = "8px";
-        const mk = (label, fn, danger) => { const b = el("button", "secondary-btn", label); b.type = "button"; b.style.padding = "7px 12px"; if (danger) b.style.color = "var(--danger)"; b.onclick = fn; acts.append(b); };
-        mk("Copy link", async () => { const r = await shareNotice(a.id, a.title); if (r) say(r, "success"); });
-        if (isAdmin) mk(a.pinned ? "Unpin" : "Pin", async () => { const r = await noticesApi({ action: "pin", id: a.id, pinned: !a.pinned }); say(r.message, r.success ? "success" : "error"); reload(); });
-        mk("Edit", () => startEdit(a.id));
-        mk("Delete", async () => { if (!confirm("Delete this announcement?")) return; const r = await noticesApi({ action: "delete", id: a.id }); say(r.message, r.success ? "success" : "error"); reload(); }, true);
-        row.append(head, small, acts); f.list.append(row);
+        const row = el("div", "note-row");
+
+        const text = el("div", "note-text");
+        const titleLine = el("strong", "", a.title);
+        const meta = el("small", "", [a.pinned ? "Pinned" : "", ago(a.createdAt), a.hasImage ? "has image" : ""].filter(Boolean).join(" · "));
+        text.append(titleLine, meta);
+
+        const menu = kebab(`Options for ${a.title}`, [
+            { label: "Share", onClick: () => shareNotice(a.id, a.title) },
+            isAdmin && { label: a.pinned ? "Unpin" : "Pin", onClick: async () => { const r = await noticesApi({ action: "pin", id: a.id, pinned: !a.pinned }); say(r.message, r.success ? "success" : "error"); reload(); } },
+            { label: "Edit", onClick: () => startEdit(a.id) },
+            { label: "Delete", danger: true, onClick: async () => { if (!confirm("Delete this announcement?")) return; const r = await noticesApi({ action: "delete", id: a.id }); say(r.message, r.success ? "success" : "error"); reload(); } }
+        ]);
+
+        row.append(text, menu);
+        f.list.append(row);
     }
 }
 async function startEdit(id) {

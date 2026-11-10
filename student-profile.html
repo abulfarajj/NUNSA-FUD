@@ -6,7 +6,9 @@
   <title>Profile | NUNSA-FUD</title>
 <meta name="description" content="Your NUNSA-FUD profile and picture."/>
 <meta name="robots" content="noindex, nofollow"/>
-<link rel="icon" href="/favicon.ico" sizes="48x48"/>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/png" sizes="96x96" href="/assets/icons/favicon-96x96.png"/>
+<link rel="icon" type="image/png" sizes="48x48" href="/assets/icons/favicon-48x48.png"/>
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png"/>
 <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png"/>
 <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png"/>
@@ -54,7 +56,8 @@
         <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
         <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
       </div>
-      <button id="student-logout-btn" class="menu-logout" type="button">Log out</button>
+      <a class="menu-link" href="/privacy.html">Privacy</a>
+    <button id="student-logout-btn" class="menu-logout" type="button">Log out</button>
     </div>
   </header>
   <main class="student-subpage-main">
@@ -87,7 +90,6 @@
     <input aria-label="Zoom" class="avatar-zoom" id="avatar-zoom" max="400" min="100" step="1" type="range" value="100" />
     <div class="avatar-actions"><button class="secondary-btn" id="avatar-cancel" type="button">Cancel</button><button class="primary-btn" id="avatar-save" type="button">Save</button></div>
   </dialog>
-  <footer class="site-footer"><p>NUNSA-FUD Electronic Voting System · <a href="/privacy.html">Privacy</a></p></footer>
   <script src="student-profile.js" type="module"></script>
   <script src="theme.js" type="module"></script>
   <script src="student-nav.js" type="module"></script>

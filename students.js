@@ -1,3 +1,4 @@
+import { kebab } from "./row-menu.js";
 import {
     initializeApp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
@@ -516,44 +517,12 @@ function renderStudents(
             card.appendChild(status);
             card.appendChild(level);
 
-            const editLevelButton = document.createElement("button");
-            editLevelButton.type = "button";
-            editLevelButton.className = "student-reset-btn student-level-edit-btn";
-            editLevelButton.textContent = "Update academic level";
-            editLevelButton.addEventListener("click", () => updateAcademicLevel(student, editLevelButton));
-            card.appendChild(editLevelButton);
-
-            // Super Admins only, and only for students who have registered.
-            if (
-                currentAdminRole === "super_admin" &&
-                student.accountCreated === true
-            ) {
-                const resetButton =
-                    document.createElement(
-                        "button"
-                    );
-
-                resetButton.type =
-                    "button";
-
-                resetButton.className =
-                    "student-reset-btn";
-
-                resetButton.textContent =
-                    "Reset registration";
-
-                resetButton.addEventListener(
-                    "click",
-                    () => resetRegistration(
-                        student,
-                        resetButton
-                    )
-                );
-
-                card.appendChild(
-                    resetButton
-                );
-            }
+            const actions = [
+                { label: "Update academic level", onClick: (item) => updateAcademicLevel(student, item) },
+                // Super Admins only, and only for students who have registered.
+                currentAdminRole === "super_admin" && student.accountCreated === true && { label: "Reset registration", danger: true, onClick: (item) => resetRegistration(student, item) }
+            ];
+            card.appendChild(kebab(`Options for ${student.name || student.matricNumber}`, actions));
 
             studentList.appendChild(
                 card

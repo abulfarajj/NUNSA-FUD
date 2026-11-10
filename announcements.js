@@ -1,4 +1,6 @@
-import { auth, waitUser, noticesApi, ago, shareNotice, el } from "/nunsa-client.js";
+import { kebab } from "./row-menu.js";
+import { auth, waitUser, noticesApi, ago, shareNotice, noticeLink, el } from "/nunsa-client.js";
+import { copyText } from "./share-sheet.js";
 const shareIcon = () => { const w = document.createElement("span"); w.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>'; return w.firstChild; };
 const iconShareBtn = () => { const b = el("button", "secondary-btn announcement-share share-icon-btn"); b.type = "button"; b.setAttribute("aria-label", "Share link"); b.title = "Share"; b.append(shareIcon()); return b; };
 
@@ -61,12 +63,11 @@ async function showFeed() {
             link.append(info, title);
             if (a.body) link.append(el("p", "announcement-excerpt", a.body.length > 160 ? a.body.slice(0, 160) + "…" : a.body));
             if (a.hasImage) link.append(el("span", "tag", "Image attached"));
-            const share = iconShareBtn();
-            share.addEventListener("click", async () => {
-                const result = await shareNotice(a.id, a.title);
-                if (result) say(result, "success");
-            });
-            row.append(link, share); list.append(row);
+            const menu = kebab(`Options for ${a.title}`, [
+                { label: "Share", onClick: () => shareNotice(a.id, a.title) },
+                { label: "Copy link", onClick: async (item) => { const ok = await copyText(noticeLink(a.id)); item.textContent = ok ? "Link copied" : "Could not copy"; } }
+            ]);
+            row.append(link, menu); list.append(row);
         }
     };
     search.addEventListener("input", render);

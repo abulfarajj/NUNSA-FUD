@@ -1,3 +1,4 @@
+import { kebab } from "./row-menu.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import {
@@ -111,14 +112,10 @@ function render() {
         info.appendChild(el("p", `${applied} applicant(s)`));
         card.appendChild(info);
 
-        const editBtn = el("button", "Edit", "forms-ghost");
-        editBtn.type = "button";
-        editBtn.addEventListener("click", () => startEdit(position));
-        const deleteBtn = el("button", "Delete", "forms-ghost forms-danger");
-        deleteBtn.type = "button";
-        deleteBtn.addEventListener("click", () => removePosition(position));
-        card.appendChild(editBtn);
-        card.appendChild(deleteBtn);
+        card.appendChild(kebab(`Options for ${position.position}`, [
+            { label: "Edit", onClick: () => startEdit(position) },
+            { label: "Delete", danger: true, onClick: () => removePosition(position) }
+        ]));
         positionList.appendChild(card);
     });
 
@@ -153,15 +150,13 @@ function renderApplicants() {
         card.appendChild(info);
 
         if (application.status === "applied") {
-            const button = el("button", "Disqualify", "forms-ghost forms-danger");
-            button.type = "button";
-            button.addEventListener("click", () => review(application, "disqualify", button));
-            card.appendChild(button);
+            card.appendChild(kebab(`Options for ${application.studentName || "this applicant"}`, [
+                { label: "Disqualify", danger: true, onClick: (item) => review(application, "disqualify", item) }
+            ]));
         } else if (application.status === "disqualified") {
-            const button = el("button", "Reinstate", "forms-ghost");
-            button.type = "button";
-            button.addEventListener("click", () => review(application, "reinstate", button));
-            card.appendChild(button);
+            card.appendChild(kebab(`Options for ${application.studentName || "this applicant"}`, [
+                { label: "Reinstate", onClick: (item) => review(application, "reinstate", item) }
+            ]));
         }
         applicantList.appendChild(card);
     });

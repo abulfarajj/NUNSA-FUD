@@ -1,4 +1,5 @@
 // Shared helpers for the notice board + dashboard extras (ES module).
+import { openShareSheet } from "./share-sheet.js";
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
@@ -41,17 +42,8 @@ export function ago(ms) {
 }
 export const noticeLink = id => location.origin + "/a/" + encodeURIComponent(id);
 export async function shareNotice(id, title) {
-    const url = noticeLink(id);
-    try {
-        if (navigator.share && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)) {
-            await navigator.share({ title, url }); return "Shared.";
-        }
-    } catch (e) { if (e && e.name === "AbortError") return ""; }
-    try { await navigator.clipboard.writeText(url); return "Link copied."; }
-    catch {
-        const t = document.createElement("textarea"); t.value = url; document.body.appendChild(t); t.select();
-        try { document.execCommand("copy"); } catch {} t.remove(); return "Link copied.";
-    }
+    openShareSheet({ title, url: noticeLink(id) });
+    return "";
 }
 export function el(tag, cls, text) {
     const n = document.createElement(tag);

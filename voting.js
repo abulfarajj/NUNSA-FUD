@@ -1,3 +1,4 @@
+import { setDigit, readDigit, typedDigit } from "./pin-boxes.js";
 import { buildReceiptCard } from "./receipt-card.js";
 import {
     initializeApp
@@ -139,7 +140,7 @@ function getSelectedPin() {
     return Array.from(
         votePinGroup.querySelectorAll("input")
     )
-        .map(input => input.value)
+        .map(readDigit)
         .join("");
 }
 
@@ -147,7 +148,7 @@ function clearPinInputs() {
     votePinGroup
         .querySelectorAll("input")
         .forEach(input => {
-            input.value = "";
+            setDigit(input, "");
         });
 
     votePinMessage.textContent = "";
@@ -170,14 +171,10 @@ function setupPinInputs() {
         input.addEventListener(
             "input",
             () => {
-                input.value =
-                    input.value.replace(
-                        /\D/g,
-                        ""
-                    );
+                setDigit(input, typedDigit(input));
 
                 if (
-                    input.value &&
+                    readDigit(input) &&
                     index <
                     inputs.length - 1
                 ) {
@@ -195,7 +192,7 @@ function setupPinInputs() {
                     index > 0
                 ) {
                     inputs[index - 1].focus();
-                    inputs[index - 1].value = "";
+                    setDigit(inputs[index - 1], "");
                 }
             }
         );
@@ -220,10 +217,10 @@ function setupPinInputs() {
                                     digitIndex
                                 ]
                             ) {
-                                inputs[
-                                    digitIndex
-                                ].value =
-                                    digit;
+                                setDigit(
+                                    inputs[digitIndex],
+                                    digit
+                                );
                             }
                         }
                     );

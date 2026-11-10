@@ -1,3 +1,4 @@
+import { kebab } from "./row-menu.js";
 import {
     initializeApp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
@@ -960,22 +961,6 @@ async function loadCandidates() {
                         }
                     </div>
 
-                    ${
-                        currentElection &&
-                        currentElection.status === "draft"
-                            ? `
-                                <button
-                                    type="button"
-                                    class="remove-candidate-btn"
-                                    data-candidate-id="${escapeHtml(candidate.id)}"
-                                    data-candidate-name="${escapeHtml(candidate.name || "this candidate")}"
-                                >
-                                    REMOVE
-                                </button>
-                            `
-                            : ""
-                    }
-
                 `;
 
                 const imageElement =
@@ -993,20 +978,10 @@ async function loadCandidates() {
                         };
                 }
 
-                const removeButton =
-                    card.querySelector(
-                        ".remove-candidate-btn"
-                    );
-
-                if (removeButton) {
-
-                    removeButton.addEventListener(
-                        "click",
-                        () => handleRemoveCandidate(
-                            removeButton.dataset.candidateId,
-                            removeButton.dataset.candidateName
-                        )
-                    );
+                if (currentElection && currentElection.status === "draft") {
+                    card.appendChild(kebab(`Options for ${candidate.name || "this candidate"}`, [
+                        { label: "Remove", danger: true, onClick: () => handleRemoveCandidate(candidate.id, candidate.name || "this candidate") }
+                    ]));
                 }
 
                 candidateList.appendChild(

@@ -1,3 +1,4 @@
+import { kebabMarkup } from "./row-menu.js";
 import {
     initializeApp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
@@ -242,16 +243,7 @@ function createAdminCard(admin) {
 
         if (canManageSuperAdmin) {
 
-            actionButton = `
-                <button
-                    type="button"
-                    class="logout-button admin-status-btn"
-                    data-admin-id="${escapeHtml(admin.id)}"
-                    data-admin-role="super_admin"
-                >
-                    Deactivate
-                </button>
-            `;
+            actionButton = kebabMarkup("Options", `<button type="button" role="menuitem" class="admin-status-btn danger" data-admin-id="${escapeHtml(admin.id)}" data-admin-role="super_admin">Deactivate</button>`);
 
         } else {
 
@@ -260,16 +252,7 @@ function createAdminCard(admin) {
 
     } else {
 
-        actionButton = `
-            <button
-                type="button"
-                class="logout-button admin-status-btn"
-                data-admin-id="${escapeHtml(admin.id)}"
-                data-admin-role="admin"
-            >
-                Deactivate
-            </button>
-        `;
+        actionButton = kebabMarkup("Options", `<button type="button" role="menuitem" class="admin-status-btn danger" data-admin-id="${escapeHtml(admin.id)}" data-admin-role="admin">Deactivate</button>`);
     }
 
     const meta = [roleLabel, admin.founder === true ? "Founder" : ""]

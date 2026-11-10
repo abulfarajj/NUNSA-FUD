@@ -1,3 +1,4 @@
+import { kebab } from "./row-menu.js";
 import {
     initializeApp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
@@ -464,155 +465,47 @@ async function loadElections() {
 ===================================================== */
 
 function createElectionCard(election) {
+    const card = document.createElement("div");
+    card.className = "admin-welcome-card election-card";
 
-    const card =
-        document.createElement("div");
+    const status = election.status || "draft";
 
-    card.className =
-        "admin-welcome-card";
+    const head = document.createElement("div");
+    head.className = "election-card-head";
+    const titleBox = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = election.title || "Untitled Election";
+    const badge = document.createElement("span");
+    badge.className = "role-badge";
+    badge.textContent = status;
+    titleBox.append(title, badge);
 
-    const startText =
-        formatDate(election.startAt);
-
-    const endText =
-        formatDate(election.endAt);
-
-    const status =
-        election.status || "draft";
-
-
-    card.innerHTML = `
-
-        <h3>
-            ${escapeHtml(
-                election.title ||
-                "Untitled Election"
-            )}
-        </h3>
-
-        <p>
-            ${escapeHtml(
-                election.description ||
-                "No description provided."
-            )}
-        </p>
-
-        <p>
-            <strong>Start:</strong>
-            ${startText}
-        </p>
-
-        <p>
-            <strong>End:</strong>
-            ${endText}
-        </p>
-
-        <p>
-            <strong>Status:</strong>
-
-            <span class="role-badge">
-                ${escapeHtml(status)}
-            </span>
-        </p>
-
-        <div
-            style="
-                display:flex;
-                gap:10px;
-                flex-wrap:wrap;
-                margin-top:15px;
-            "
-        >
-
-            <button
-                type="button"
-                class="login-button manage-election-btn"
-            >
-                MANAGE
-            </button>
-
-            <button
-                type="button"
-                class="login-button edit-election-btn"
-            >
-                EDIT
-            </button>
-
-        </div>
-    `;
-
-
-    /* ---------------------------------------------
-       MANAGE BUTTON
-    --------------------------------------------- */
-
-    const manageBtn =
-        card.querySelector(
-            ".manage-election-btn"
-        );
-
-
-    manageBtn.addEventListener(
-        "click",
-        () => {
-
-            const nextPage = new URLSearchParams(window.location.search).get("next");
-            const target = ["candidates.html", "voters.html"].includes(nextPage) ? nextPage : "manage-election.html";
-            window.location.href = `${target}?id=${encodeURIComponent(election.id)}`;
-
-        }
-    );
-
-
-    /* ---------------------------------------------
-       EDIT BUTTON
-    --------------------------------------------- */
-
-    const editBtn =
-        card.querySelector(
-            ".edit-election-btn"
-        );
-
-
-        editBtn.addEventListener(
-        "click",
-        () => {
-            editElection(election);
-        }
-    );
-
-    /* ---------------------------------------------
-       DELETE BUTTON (Super Admin only; the server checks too)
-    --------------------------------------------- */
-    if (currentAdminRole === "super_admin") {
-        const deleteBtn =
-            document.createElement(
-                "button"
-            );
-
-        deleteBtn.type =
-            "button";
-
-        deleteBtn.className =
-            "login-button delete-election-btn";
-
-        deleteBtn.textContent =
-            "DELETE";
-
-        deleteBtn.addEventListener(
-            "click",
-            () => {
-                deleteElection(
-                    election,
-                    deleteBtn
-                );
+    const menu = kebab(`Options for ${election.title || "this election"}`, [
+        {
+            label: "Manage",
+            onClick: () => {
+                const nextPage = new URLSearchParams(window.location.search).get("next");
+                const target = ["candidates.html", "voters.html"].includes(nextPage) ? nextPage : "manage-election.html";
+                window.location.href = `${target}?id=${encodeURIComponent(election.id)}`;
             }
-        );
+        },
+        { label: "Edit", onClick: () => editElection(election) },
+        currentAdminRole === "super_admin" && { label: "Delete", danger: true, onClick: (item) => deleteElection(election, item) }
+    ]);
+    head.append(titleBox, menu);
+    card.append(head);
 
-        editBtn.parentElement.appendChild(
-            deleteBtn
-        );
+    if (election.description) {
+        const description = document.createElement("p");
+        description.className = "election-card-description";
+        description.textContent = election.description;
+        card.append(description);
     }
+
+    const dates = document.createElement("p");
+    dates.className = "election-card-dates";
+    dates.textContent = `${formatDate(election.startAt)}  to  ${formatDate(election.endAt)}`;
+    card.append(dates);
 
     return card;
 }

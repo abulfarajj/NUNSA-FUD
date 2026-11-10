@@ -1,3 +1,4 @@
+import { setDigit, readDigit, typedDigit } from "./pin-boxes.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
@@ -68,7 +69,7 @@ function getDigits(group) {
     }
 
     return Array.from(group.querySelectorAll(".pin-box"))
-        .map(input => input.value)
+        .map(readDigit)
         .join("");
 }
 
@@ -78,7 +79,7 @@ function clearDigits(group) {
     }
 
     group.querySelectorAll(".pin-box").forEach(input => {
-        input.value = "";
+        setDigit(input, "");
         input.disabled = false;
     });
 }
@@ -101,14 +102,13 @@ function setupDigitInputs(group) {
     }
 
     const inputs = Array.from(group.querySelectorAll(".pin-box"));
+    const masked = !group.classList.contains("code-6");
 
     inputs.forEach((input, index) => {
         input.addEventListener("input", () => {
-            input.value = input.value
-                .replace(/\D/g, "")
-                .slice(0, 1);
+            setDigit(input, typedDigit(input), masked);
 
-            if (input.value && index < inputs.length - 1) {
+            if (readDigit(input) && index < inputs.length - 1) {
                 inputs[index + 1].focus();
             }
         });
@@ -120,7 +120,7 @@ function setupDigitInputs(group) {
                 index > 0
             ) {
                 inputs[index - 1].focus();
-                inputs[index - 1].value = "";
+                setDigit(inputs[index - 1], "");
             }
 
             if (
@@ -149,7 +149,7 @@ function setupDigitInputs(group) {
                 .slice(0, inputs.length);
 
             pasted.split("").forEach((digit, digitIndex) => {
-                inputs[digitIndex].value = digit;
+                setDigit(inputs[digitIndex], digit, masked);
             });
 
             const nextIndex = Math.min(
