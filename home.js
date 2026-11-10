@@ -1,12 +1,16 @@
 import { auth, db, waitUser, noticesApi, ago, el } from "./nunsa-client.js";
 import { collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { bindProfilePreview } from "./profile-preview.js";
+import { selectDashboardView, RESULTS_WINDOW_MS } from "./dashboard-state.mjs";
 
 const $ = id => document.getElementById(id);
 const ui = { election: $("home-election"), stats: $("home-stats"), timeline: $("home-timeline"), candidates: $("home-candidates"), announcements: $("home-announcements"), status: $("home-status") };
+bindProfilePreview(ui.candidates);
+bindProfilePreview(ui.election);
 const toMs = value => value?.toMillis ? value.toMillis() : value ? new Date(value).getTime() : 0;
 const dateLabel = value => { const t = toMs(value); return t ? new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "To be announced"; };
-/* After an election ends the dashboard shows its result link for this long, then goes back to normal. */
-const RESULTS_WINDOW_MS = 2 * 60 * 60 * 1000;
+/* After results are finalized, keep the View Results card for 24 hours before showing the office carousel. */
+
 const matricKey = value => String(value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 async function getJson(path) {
@@ -57,18 +61,25 @@ function makeTimeline(stageIndex, labels) {
 function renderElection(election, overview, stage, actionHref, actionText, voting) {
   ui.election.replaceChildren();
   const hero = el("section", "election-hero");
-  const statusText = ["APPLICATIONS OPEN", "SCREENING IN PROGRESS", "VOTING OPEN", "RESULTS AVAILABLE"][stage] || "ELECTION UPDATE";
+  const statusText = [
+    "APPLICATIONS OPEN",
+    "SCREENING IN PROGRESS",
+    "VOTING PUBLISHED",
+    "VOTING OPEN",
+    "RESULTS AVAILABLE"
+  ][stage] || "ELECTION UPDATE";
   hero.append(el("p", "eyebrow", statusText));
   hero.append(el("h2", "", election?.title || "NUNSA-FUD Elections"));
   const subtitle = [
     "Applications are open. Review the available positions.",
     "Applications are being reviewed by the electoral committee.",
+    "The election has been published. Voting will begin at the scheduled time.",
     "Your vote matters. Cast it before the deadline.",
-    "The election has ended. View the published outcome."
+    "The election has ended. View the results and official outcome."
   ][stage] || "Election information will appear here when available.";
   hero.append(el("p", "election-subtitle", subtitle));
   const end = toMs(election?.endAt), start = toMs(election?.startAt);
-  if (stage === 2 && end > Date.now()) {
+  if (stage === 3 && end > Date.now()) {
     const progress = el("div", "election-progress");
     const bar = document.createElement("span");
     bar.style.width = `${Math.max(0, Math.min(100, ((Date.now() - start) / Math.max(1, end - start)) * 100))}%`;
@@ -83,7 +94,7 @@ function renderElection(election, overview, stage, actionHref, actionText, votin
       close.textContent = seconds ? `Closes in ${days ? `${days}d ${hours}h` : hours ? `${hours}h ${minutes}m` : `${minutes}m`}` : "Voting has closed";
       if (!seconds) clearInterval(timer);
     }, 1000);
-  } else if (stage === 1 && start > Date.now()) {
+  } else if (stage === 2 && start > Date.now()) {
     const row = el("div", "election-time-row");
     row.append(el("span", "", `Opens ${new Date(start).toLocaleString()}`));
     const countdown = el("span", "", "Calculating opening time…");
@@ -95,16 +106,17 @@ function renderElection(election, overview, stage, actionHref, actionText, votin
       countdown.textContent = seconds ? `Opens in ${days ? `${days}d ${hours}h` : hours ? `${hours}h ${minutes}m` : `${minutes}m ${secs}s`}` : "Voting is opening";
       if (!seconds) clearInterval(timer);
     }, 1000);
-  } else if (stage === 3 && end) {
+  } else if (stage === 4 && end) {
     hero.append(el("p", "election-subtitle", `Voting closed ${new Date(end).toLocaleString()}.`));
+    if (overview?.finalized !== true) hero.append(el("p", "hero-note", "These totals remain provisional until results are officially finalized."));
   }
-  if (stage === 2 && voting?.known && voting.hasVoted) hero.append(el("p", "hero-note", "You have voted."));
-  else if (stage === 2 && voting?.known && !voting.eligible) hero.append(el("p", "hero-note", "Not eligible to vote in this election"));
+  if (stage === 3 && voting?.known && voting.hasVoted) hero.append(el("p", "hero-note", "You have voted."));
+  else if (stage === 3 && voting?.known && !voting.eligible) hero.append(el("p", "hero-note", "Not eligible to vote in this election"));
   else if (actionHref) { const action = el("a", "hero-action", actionText); action.href = actionHref; hero.append(action); }
   ui.election.append(hero);
   const positions = overview?.totalPositions ?? 0;
   const candidates = overview?.totalCandidates ?? 0;
-  ui.stats.replaceChildren(makeStats(positions, candidates, ["Applications", "Screening", "Voting", "Results"][stage] || "Pending"));
+  ui.stats.replaceChildren(makeStats(positions, candidates, ["Applications", "Screening", "Published", "Voting", "Results"][stage] || "Pending"));
 }
 
 async function loadVotingState(election) {
@@ -134,7 +146,30 @@ async function loadVotingState(election) {
 }
 async function loadPublishedElections() {
   const snap = await getDocs(query(collection(db, "elections"), where("status", "in", ["published", "ended"])));
-  return snap.docs.map(d => ({ id: d.id, ...d.data(), startMs: toMs(d.data().startAt), endMs: toMs(d.data().endAt) }));
+  const byId = new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
+
+  // Keep finalized archive entries visible even if an election metadata
+  // document was manually removed. The archive endpoint derives these entries
+  // from immutable finalized results; it never invents provisional elections.
+  try {
+    const history = await getJson("/.netlify/functions/get-election-history");
+    for (const item of history.elections || []) {
+      if (item.finalized === true) {
+        const existing = byId.get(item.id);
+        byId.set(item.id, existing
+          ? { ...existing, finalized: true, finalizedAt: item.finalizedAt || existing.finalizedAt || null }
+          : { ...item, status: "ended" });
+      }
+    }
+  } catch (error) {
+    console.warn("Historical election metadata unavailable:", error.message);
+  }
+
+  return [...byId.values()].map(e => ({
+    ...e,
+    startMs: toMs(e.startAt),
+    endMs: toMs(e.endAt) || (e.finalized === true ? toMs(e.finalizedAt) : 0)
+  }));
 }
 async function loadFormStatus() {
   try { return await getJson("/.netlify/functions/get-form-offers"); }
@@ -150,14 +185,64 @@ async function renderCandidates(election, overview) {
   const wrap = section("Meet the candidates", `candidate-directory.html?electionId=${encodeURIComponent(election.id)}`);
   const strip = el("div", "candidate-strip");
   overview.candidates.slice(0, 8).forEach(candidate => {
-    const link = el("a", "candidate-mini");
-    link.href = `candidate.html?electionId=${encodeURIComponent(election.id)}&id=${encodeURIComponent(candidate.id)}`;
+    const card = el("div", "candidate-mini");
+    const infoHref = candidate.studentProfileId
+      ? `student-profile-view.html?id=${encodeURIComponent(candidate.studentProfileId)}&electionId=${encodeURIComponent(election.id)}&candidateId=${encodeURIComponent(candidate.id)}`
+      : `candidate.html?electionId=${encodeURIComponent(election.id)}&id=${encodeURIComponent(candidate.id)}`;
+    const picture = el("button", "candidate-mini-picture");
+    picture.type = "button";
+    picture.dataset.profilePreview = "true";
+    picture.dataset.profileName = candidate.name || "Student";
+    picture.dataset.profilePicture = candidate.profilePicture || "assets/default-profile.jpg";
+    picture.dataset.profileRole = candidate.position || "Candidate";
+    picture.dataset.profileInfoHref = infoHref;
+    picture.setAttribute("aria-label", `Preview ${candidate.name || "student"}'s profile picture`);
     const img = el("img"); img.src = candidate.profilePicture || "assets/default-profile.jpg"; img.alt = `Photo of ${candidate.name}`;
     img.onerror = () => { img.src = "assets/default-profile.jpg"; };
-    link.append(img, el("strong", "", candidate.name), el("small", "", candidate.position), el("span", "candidate-mandate-link", "Read mandate →"));
-    strip.append(link);
+    picture.append(img);
+    const name = el("a", "candidate-mini-name", candidate.name || "Student"); name.href = infoHref;
+    const position = el("small", "", candidate.position || "Candidate");
+    const profile = el("a", "candidate-mini-profile", "View profile →"); profile.href = infoHref;
+    card.append(picture, name, position, profile);
+    strip.append(card);
   });
   wrap.append(strip); ui.candidates.replaceChildren(wrap);
+}
+
+function renderOfficeCarousel(offices) {
+  ui.election.replaceChildren();
+  const wrap = el("section", "home-office-carousel");
+  const heading = el("div", "office-carousel-heading");
+  heading.append(el("p", "eyebrow", "NUNSA-FUD LEADERSHIP"));
+  heading.append(el("h2", "", "Current office holders"));
+  heading.append(el("p", "", "Meet the students currently serving in each office."));
+  wrap.append(heading);
+  const track = el("div", "office-holder-track");
+  offices.forEach(office => {
+    const card = el("article", "office-holder-card");
+    const profileHref = office.studentProfileId
+      ? `student-profile-view.html?id=${encodeURIComponent(office.studentProfileId)}`
+      : "#";
+    const picture = el("button", "office-holder-picture");
+    picture.type = "button";
+    picture.dataset.profilePreview = "true";
+    picture.dataset.profileName = office.name || "Student";
+    picture.dataset.profilePicture = office.profilePicture || "assets/default-profile.jpg";
+    picture.dataset.profileRole = `Current ${office.position}`;
+    picture.dataset.profileInfoHref = profileHref;
+    picture.setAttribute("aria-label", `Preview ${office.name || "office holder"}'s profile picture`);
+    const img = el("img"); img.src = office.profilePicture || "assets/default-profile.jpg"; img.alt = `${office.name || "Office holder"} profile picture`;
+    img.onerror = () => { img.src = "assets/default-profile.jpg"; };
+    picture.append(img);
+    const position = el("p", "office-holder-position", office.position);
+    const name = el("a", "office-holder-name", office.name || "NUNSA-FUD Student"); name.href = profileHref;
+    const view = el("a", "office-holder-view-profile", "View profile →"); view.href = profileHref;
+    card.append(picture, position, name, view);
+    track.append(card);
+  });
+  wrap.append(track);
+  ui.election.append(wrap);
+  ui.stats.replaceChildren();
 }
 
 async function renderAnnouncements() {
@@ -190,22 +275,22 @@ async function renderStatus(election, forms, me) {
   const grid = el("div", "status-grid");
 
   const apps = (forms.applications || []).slice().sort((a, b) =>
-    Number(b.electionId === election?.id) - Number(a.electionId === election?.id) || Number(b.status === "applied") - Number(a.status === "applied"));
+    Number(b.electionId === election?.id) - Number(a.electionId === election?.id) || Number(b.finalized) - Number(a.finalized));
   const application = apps[0];
-  const onBallot = application && application.status === "applied" && ["published", "ended"].includes(application.electionStatus);
   const appPanel = el("div", "status-panel" + (application ? " applied" : ""));
-  appPanel.append(el("span", "status-label", !application ? "APPLICATIONS" : onBallot ? "CANDIDATE" : application.status.toUpperCase()));
+  appPanel.append(el("span", "status-label", !application ? "APPLICATIONS" : (application.statusLabel || application.status || "Status unavailable").toUpperCase()));
   appPanel.append(el("strong", "", application ? application.position : "Your application"));
-  const appLine = !application ? ((forms.offers || []).length ? "Applications are open. Apply for an available position." : "No application period is open right now.")
-    : application.status === "disqualified" ? "Disqualified" : onBallot ? "On the ballot" : "Under screening";
+  const appLine = !application
+    ? ((forms.offers || []).length ? "Applications are open. Apply for an available position." : "No application period is open right now.")
+    : (application.statusMessage || application.statusLabel || "Your application status is being checked.");
   appPanel.append(el("p", "", application ? `${application.electionTitle || "Election"} · ${appLine}` : appLine));
   grid.append(appPanel);
 
   if (me?.offices?.length) {
     const officePanel = el("div", "status-panel office-status");
-    officePanel.append(el("span", "status-label", "ELECTED POSITION"));
+    officePanel.append(el("span", "status-label", "CURRENT OFFICE"));
     officePanel.append(el("strong", "", me.offices.map(o => o.position).join(", ")));
-    officePanel.append(el("p", "", "Your representative publishing access is active.")); grid.append(officePanel);
+    officePanel.append(el("p", "", "Your representative publishing access is active until the published tenure end date or a new election's results are finalized.")); grid.append(officePanel);
   }
   wrap.append(grid); ui.status.replaceChildren(wrap);
 }
@@ -218,34 +303,80 @@ async function init() {
     noticesApi(null, "?me=1").catch(() => null)
   ]);
   const now = Date.now();
-  const live = elections.filter(e => e.status === "published" && e.startMs <= now && now < e.endMs).sort((a, b) => a.endMs - b.endMs)[0];
-  const upcoming = elections.filter(e => e.status === "published" && e.startMs > now).sort((a, b) => a.startMs - b.startMs)[0];
-  const ended = elections.filter(e => (e.status === "ended" || (e.status === "published" && e.endMs && e.endMs <= now)) && e.endMs && now - e.endMs < RESULTS_WINDOW_MS).sort((a, b) => b.endMs - a.endMs)[0];
-  const applicationOffer = (forms.offers || [])[0];
-  let election = live || upcoming || ended || null;
-  let stage = live ? 2 : upcoming ? 1 : ended ? 3 : -1;
-  let overview = election ? await loadOverview(election.id) : null;
-  if (applicationOffer && (!election || (!live && !upcoming && stage === 3))) {
-    election = { id: applicationOffer.electionId, title: applicationOffer.title, status: "draft" };
-    stage = 0; overview = { totalPositions: applicationOffer.positions.length, totalCandidates: 0, candidates: [] };
+  const hasLiveOrUpcoming = elections.some(e =>
+    (e.status === "published" && e.startMs <= now && now < e.endMs) ||
+    (e.status === "published" && e.startMs > now)
+  );
+  const latestEnded = hasLiveOrUpcoming ? null : elections
+    .filter(e => (e.status === "ended" || (e.status === "published" && e.endMs && e.endMs <= now)) && e.endMs)
+    .sort((a, b) => b.endMs - a.endMs)[0];
+  let endedOverview = latestEnded ? await loadOverview(latestEnded.id) : null;
+  // A finalized results record can outlive a manually deleted elections
+  // document. In that case get-election-overview correctly returns 404, while
+  // the authenticated archive still supplies the immutable finalization time.
+  if (!endedOverview && latestEnded?.finalized === true) {
+    endedOverview = {
+      finalized: true,
+      finalizedAt: toMs(latestEnded.finalizedAt),
+      totalCandidates: 0,
+      totalPositions: 0
+    };
   }
-  if (election) {
-    const actionHref = stage === 0 ? "student-applications.html" : stage === 3 ? `results.html?id=${encodeURIComponent(election.id)}` : `voter-portal.html`;
-    const actionText = stage === 0 ? "APPLY FOR A POSITION" : stage === 3 ? "VIEW RESULTS" : stage === 2 ? "VOTE NOW" : "VIEW ELECTION";
-    const voting = stage === 2 ? await loadVotingState(election) : { known: false };
+  const electionsForView = latestEnded
+    ? elections.map(e => e.id === latestEnded.id ? {
+        ...e,
+        finalized: endedOverview?.finalized === true,
+        finalizedAt: endedOverview?.finalizedAt || e.finalizedAt || null
+      } : e)
+    : elections;
+
+  const view = selectDashboardView({
+    now,
+    elections: electionsForView,
+    lifecycleElections: forms.lifecycleElections || [],
+    currentOffices: me?.currentOffices || []
+  });
+
+  if (view.mode === "election") {
+    const election = view.election;
+    const stage = view.stage;
+    let overview = stage === 4 ? endedOverview : null;
+    if (stage >= 2 && stage !== 4) overview = await loadOverview(election.id);
+    const actionHref = stage === 0 || stage === 1
+      ? "student-applications.html"
+      : stage === 4
+        ? `results.html?id=${encodeURIComponent(election.id)}`
+        : "voter-portal.html";
+    const actionText = stage === 0 ? "APPLY FOR A POSITION"
+      : stage === 1 ? "VIEW APPLICATION STATUS"
+        : stage === 4 ? "VIEW RESULTS"
+          : stage === 3 ? "VOTE NOW" : "VIEW ELECTION";
+    const voting = stage === 3 ? await loadVotingState(election) : { known: false };
     renderElection(election, overview, stage, actionHref, actionText, voting);
-    const labels = stage === 0 ? ["Open", "Next", "Upcoming", "Upcoming"] : stage === 1 ? ["Completed", "Completed", dateLabel(election.startAt), dateLabel(election.endAt)] : stage === 2 ? ["Completed", "Completed", `${dateLabel(election.startAt)} – ${dateLabel(election.endAt)}`, "Upcoming"] : ["Completed", "Completed", "Completed", dateLabel(election.endAt)];
-    ui.timeline.replaceChildren(makeTimeline(stage, labels));
-    if (stage === 3) ui.candidates.replaceChildren(); else await renderCandidates(election, overview);
+    const timelineStage = stage === 0 ? 0 : stage === 1 ? 1 : (stage === 2 || stage === 3) ? 2 : 3;
+    const labels = stage === 0 ? ["Open", "Next", "Upcoming", "Upcoming"]
+      : stage === 1 ? ["Completed", "In progress", "Upcoming", "Upcoming"]
+        : stage === 2 ? ["Completed", "Completed", dateLabel(election.startAt), dateLabel(election.endAt)]
+          : stage === 3 ? ["Completed", "Completed", `${dateLabel(election.startAt)} – ${dateLabel(election.endAt)}`, "Upcoming"]
+            : ["Completed", "Completed", "Completed", dateLabel(election.endAt)];
+    ui.timeline.replaceChildren(makeTimeline(timelineStage, labels));
+    if (stage === 2 || stage === 3) await renderCandidates(election, overview);
+    else ui.candidates.replaceChildren();
+  } else if (view.mode === "office_carousel") {
+    renderOfficeCarousel(view.offices);
+    ui.timeline.replaceChildren();
+    ui.candidates.replaceChildren();
   } else {
     const emptyHero = el("section", "election-hero election-empty");
     emptyHero.append(el("h2", "", "No active elections"));
-    emptyHero.append(el("p", "election-subtitle", "There are no active elections or open application periods right now. Check back here for the next update."));
+    emptyHero.append(el("p", "election-subtitle", "There are no active elections or recognised office holders right now. Check back here for the next update."));
     ui.election.replaceChildren(emptyHero);
-    ui.stats.replaceChildren(); ui.timeline.replaceChildren(); ui.candidates.replaceChildren();
+    ui.stats.replaceChildren();
+    ui.timeline.replaceChildren();
+    ui.candidates.replaceChildren();
   }
   await renderAnnouncements();
-  await renderStatus(election, forms, me);
+  await renderStatus(view.mode === "election" ? view.election : null, forms, me);
 }
 
 init().catch(error => {

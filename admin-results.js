@@ -9,12 +9,8 @@ import {
 
 import {
     getFirestore,
-    collection,
-    getDocs,
     doc,
-    getDoc,
-    query,
-    orderBy
+    getDoc
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -80,11 +76,11 @@ function getElectionState(election) {
             ? election.endAt.toDate()
             : new Date(election.endAt);
 
-    if (
-        election.status !== "published"
-    ) {
+    if (!["published", "ended"].includes(election.status)) {
         return "unpublished";
     }
+
+    if (election.status === "ended") return "ended";
 
     if (
         now < startAt
@@ -104,7 +100,8 @@ function getElectionState(election) {
 
 function createElectionCard(
     electionId,
-    election
+    election,
+    finalized = false
 ) {
 
     const card =
@@ -159,8 +156,9 @@ function createElectionCard(
         state === "ended"
     ) {
 
-        status.textContent =
-            "Status: Ended";
+        status.textContent = finalized
+            ? "Status: Voting ended · Results finalized"
+            : "Status: Voting ended · Awaiting results finalization";
 
     } else {
 
@@ -204,90 +202,31 @@ function createElectionCard(
 }
 
 async function loadElections() {
-
     try {
-
-        loadingMessage.textContent =
-            "Loading elections...";
-
-        const electionsQuery =
-            query(
-                collection(
-                    db,
-                    "elections"
-                ),
-                orderBy(
-                    "createdAt",
-                    "desc"
-                )
-            );
-
-        const snapshot =
-            await getDocs(
-                electionsQuery
-            );
+        loadingMessage.textContent = "Loading elections...";
+        const token = await auth.currentUser.getIdToken();
+        const response = await fetch("/.netlify/functions/get-election-history", {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store"
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || "Unable to load elections.");
 
         loadingMessage.remove();
-
-        if (
-            snapshot.empty
-        ) {
-
-            showMessage(
-                "There are currently no elections available."
-            );
-
+        const elections = data.elections || [];
+        if (!elections.length) {
+            showMessage("There are currently no completed elections available.");
             return;
         }
 
-        snapshot.forEach(
-            (electionDoc) => {
-
-                const election =
-                    electionDoc.data();
-
-                if (
-                    election.status !==
-                    "published"
-                ) {
-                    return;
-                }
-
-                const card =
-                    createElectionCard(
-                        electionDoc.id,
-                        election
-                    );
-
-                electionsContainer.appendChild(
-                    card
-                );
-            }
-        );
-
-        if (
-            electionsContainer.children.length ===
-            0
-        ) {
-
-            showMessage(
-                "There are currently no published elections."
-            );
-        }
-
+        elections.forEach(election => {
+            const card = createElectionCard(election.id, election, election.finalized === true);
+            electionsContainer.appendChild(card);
+        });
     } catch (error) {
-
-        console.error(
-            "Failed to load elections:",
-            error
-        );
-
-        loadingMessage.textContent =
-            "Unable to load elections.";
-
-        showMessage(
-            "Unable to load elections right now. Please try again."
-        );
+        console.error("Failed to load elections:", error);
+        loadingMessage.textContent = "Unable to load elections.";
+        showMessage("Unable to load elections right now. Please try again.");
     }
 }
 

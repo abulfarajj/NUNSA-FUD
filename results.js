@@ -1,4 +1,5 @@
 import { buildResultsImage } from "./share-images.js";
+import { bindProfilePreview } from "./profile-preview.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js"; import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js"; import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = { apiKey: "AIzaSyA-3bioPt3VR_swJ5ItGJY7PJbo8AD7nf0", authDomain: "nunsa-voting-app.firebaseapp.com", projectId: "nunsa-voting-app", storageBucket: "nunsa-voting-app.firebasestorage.app", messagingSenderId: "1069853481069", appId: "1:1069853481069:web:63ebcca28764", measurementId: "G-EMYNQR6T0F" };
@@ -8,6 +9,7 @@ const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db =
 const params = new URLSearchParams(window.location.search); const electionId = params.get("id");
 
 const electionTitle = document.getElementById("election-title"); const electionDescription = document.getElementById("election-description"); const electionStatus = document.getElementById("election-status"); const totalVotesElement = document.getElementById("total-votes"); const candidateCountElement = document.getElementById("candidate-count"); const resultsList = document.getElementById("results-list"); const resultImageMessage = document.getElementById("result-image-message"); const generateResultImageBtn = document.getElementById("generate-result-image-btn"); const resultImagePreview = document.getElementById("result-image-preview"); const downloadResultImageBtn = document.getElementById("download-result-image-btn"); const backBtn = document.getElementById("back-btn");
+bindProfilePreview(resultsList);
 
 let lastImageKey = "";
 let currentResults = null; let currentUser = null; let currentUserIsAdmin = false;
@@ -66,6 +68,12 @@ function renderResultsBase(data) {
 
         const candidates = Array.isArray(positionData.candidates) ? positionData.candidates : [];
         const maxVotes = Math.max(...candidates.map(candidate => Number(candidate.votes || 0)), 1);
+        if (!candidates.length) {
+            const empty = document.createElement("p");
+            empty.className = "empty-note";
+            empty.textContent = "No eligible candidates were recorded for this position. No office holder was selected.";
+            positionSection.appendChild(empty);
+        }
 
         candidates.forEach(candidate => {
             const card = document.createElement("div");
@@ -80,11 +88,26 @@ function renderResultsBase(data) {
             image.onerror = function() {
                 image.src = "assets/default-profile.jpg";
             };
+            const profileHref = candidate.studentProfileId
+                ? `student-profile-view.html?id=${encodeURIComponent(candidate.studentProfileId)}&electionId=${encodeURIComponent(electionId)}&candidateId=${encodeURIComponent(candidate.id)}`
+                : `candidate.html?electionId=${encodeURIComponent(electionId)}&id=${encodeURIComponent(candidate.id)}`;
+            const profilePictureButton = document.createElement("button");
+            profilePictureButton.type = "button";
+            profilePictureButton.className = "result-candidate-profile-link";
+            profilePictureButton.dataset.profilePreview = "true";
+            profilePictureButton.dataset.profileName = candidate.name || "Student";
+            profilePictureButton.dataset.profilePicture = candidate.profilePicture || "assets/default-profile.jpg";
+            profilePictureButton.dataset.profileRole = "Candidate";
+            profilePictureButton.dataset.profileInfoHref = profileHref;
+            profilePictureButton.setAttribute("aria-label", `Preview ${candidate.name || "candidate"}'s profile picture`);
+            profilePictureButton.appendChild(image);
 
             const info = document.createElement("div");
             info.className = "result-card-info";
 
-            const name = document.createElement("h3");
+            const name = document.createElement("a");
+            name.className = "result-candidate-name";
+            name.href = profileHref;
             name.textContent = candidate.name || "Unnamed Candidate";
 
             const votes = Number(candidate.votes || 0);
@@ -117,7 +140,7 @@ function renderResultsBase(data) {
             info.appendChild(name);
             info.appendChild(voteCount);
             info.appendChild(bar);
-            header.appendChild(image);
+            header.appendChild(profilePictureButton);
             header.appendChild(percentageRing);
             header.appendChild(info);
             card.appendChild(header);
@@ -127,11 +150,16 @@ function renderResultsBase(data) {
         resultsList.appendChild(positionSection);
     });
 
-    if (data.electionStatus === "ended") {
-        resultImageMessage.textContent = "Preparing the official result image...";
+    if (data.finalized === true) {
+        resultImageMessage.textContent = "Official finalized result image.";
         generateResultImageBtn.style.display = "none";
         const imageKey = JSON.stringify((data.positions || []).map(p => (p.candidates || []).map(c => c.votes)));
         if (imageKey !== lastImageKey) { lastImageKey = imageKey; generateResultImage(); }
+    } else if (data.electionStatus === "ended") {
+        resultImageMessage.textContent = "Voting has ended. These totals are provisional and are not the official result until an administrator finalizes them.";
+        generateResultImageBtn.style.display = "none";
+        downloadResultImageBtn.style.display = "none";
+        resultImagePreview.innerHTML = "";
     } else {
         resultImageMessage.textContent = "The official result image will become available after the election ends.";
         generateResultImageBtn.style.display = "none";
@@ -154,7 +182,16 @@ function chartColor(index) {
     return "hsl(" + Math.round((index * 137.508) % 360) + " 45% 48%)";
 }
 
-function renderResults(data) {
+function renderResults(data, profileByCandidate = {}) {
+    if (Array.isArray(data.positions)) {
+        data.positions.forEach(position => (position.candidates || []).forEach(candidate => {
+            const profile = profileByCandidate[candidate.id];
+            if (profile) {
+                candidate.studentProfileId = profile.studentProfileId;
+                candidate.profilePicture = profile.profilePicture || candidate.profilePicture;
+            }
+        }));
+    }
     renderResultsBase(data);
     try { decoratePositions(data); } catch (error) { console.error("Chart error:", error); }
 }
@@ -237,9 +274,9 @@ function decoratePositions(data) {
         text.className = "summary-text";
         const label = document.createElement("span");
         label.className = "summary-label";
-        label.textContent = !total ? "No votes yet" : tie ? "Tie" : ended ? "Winner" : "Leading";
+        label.textContent = !total ? "No valid votes" : tie ? "Tie — unresolved" : finalized ? "Elected" : ended ? "Awaiting finalization" : "Leading";
         const who = document.createElement("strong");
-        who.textContent = !total ? "Waiting for the first vote"
+        who.textContent = !total ? "No office holder was selected"
             : leaders.map(c => c.name || "Unnamed candidate").join(" & ");
         const meta = document.createElement("span");
         meta.className = "summary-meta";
@@ -281,7 +318,23 @@ async function loadResults() {
             throw new Error(data.message || "Unable to load election results.");
         }
 
-        renderResults(data);
+        let profileByCandidate = {};
+        try {
+            const overviewResponse = await fetch(`/.netlify/functions/get-election-overview?electionId=${encodeURIComponent(electionId)}`, {
+                headers: { Authorization: `Bearer ${token}` }, cache: "no-store"
+            });
+            const overview = await overviewResponse.json();
+            if (overviewResponse.ok && overview.success) {
+                (overview.candidates || []).forEach(candidate => {
+                    profileByCandidate[candidate.id] = {
+                        studentProfileId: candidate.studentProfileId,
+                        profilePicture: candidate.profilePicture
+                    };
+                });
+            }
+        } catch (profileError) { console.warn("Candidate profile links unavailable:", profileError.message); }
+
+        renderResults(data, profileByCandidate);
         if (currentUserIsAdmin && data.electionStatus === "ended" && !data.finalized) {
             await finalizeResults(token);
         }

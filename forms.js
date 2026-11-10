@@ -31,7 +31,28 @@ let currentElectionId = "";
 let currentElection = null;
 let positions = [];
 let applications = [];
+let electionPhase = "unknown";
 let editingPositionId = "";
+
+function toMs(value) {
+    if (!value) return 0;
+    if (typeof value.toMillis === "function") return value.toMillis();
+    if (typeof value.toDate === "function") return value.toDate().getTime();
+    const time = new Date(value).getTime();
+    return Number.isNaN(time) ? 0 : time;
+}
+
+async function getElectionApplications(electionId) {
+    const token = await auth.currentUser.getIdToken();
+    const response = await fetch(`/.netlify/functions/get-election-applications?electionId=${encodeURIComponent(electionId)}`, {
+        headers: { Authorization: "Bearer " + token },
+        cache: "no-store"
+    });
+    let data;
+    try { data = await response.json(); } catch { throw new Error("The server returned an invalid application status response."); }
+    if (!response.ok || !data.success) throw new Error(data.message || "Unable to load applications.");
+    return data;
+}
 
 function say(text, isError) {
     messageBox.textContent = text || "";
@@ -69,37 +90,56 @@ function resetPositionForm() {
 
 /* ---------- loading ---------- */
 async function loadElections() {
-    const snapshot = await getDocs(query(collection(db, "elections"), where("status", "==", "draft")));
+    const snapshot = await getDocs(collection(db, "elections"));
+    const elections = snapshot.docs.map(electionDoc => ({ id: electionDoc.id, ...electionDoc.data() }))
+        .sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt) || toMs(b.startAt) - toMs(a.startAt));
     electionSelect.textContent = "";
-    electionSelect.appendChild(new Option(snapshot.empty ? "No draft elections: create one first" : "Choose a draft election", ""));
-    snapshot.forEach(electionDoc => {
-        electionSelect.appendChild(new Option(electionDoc.data().title || electionDoc.id, electionDoc.id));
+    electionSelect.appendChild(new Option(elections.length ? "Choose an election" : "No elections found", ""));
+    elections.forEach(election => {
+        const stored = election.status === "draft" ? "Draft" : election.status === "ended" ? "Ended" : election.status === "published" ? "Published" : election.status || "Unknown";
+        electionSelect.appendChild(new Option(`${election.title || election.id} · ${stored}`, election.id));
     });
 }
 
 async function loadElection() {
     const electionSnap = await getDoc(doc(db, "elections", currentElectionId));
-    currentElection = electionSnap.exists() ? electionSnap.data() : null;
+    currentElection = electionSnap.exists() ? { id: currentElectionId, ...electionSnap.data() } : null;
+    if (!currentElection) throw new Error("Election not found.");
 
-    const [positionSnap, applicationSnap] = await Promise.all([
+    const [positionSnap, applicationData] = await Promise.all([
         getDocs(query(collection(db, "formPositions"), where("electionId", "==", currentElectionId))),
-        getDocs(query(collection(db, "applications"), where("electionId", "==", currentElectionId)))
+        getElectionApplications(currentElectionId)
     ]);
     positions = positionSnap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => String(a.position).localeCompare(String(b.position)));
-    applications = applicationSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => String(a.position).localeCompare(String(b.position)) || String(a.studentName).localeCompare(String(b.studentName)));
-
+    applications = applicationData.applications || [];
+    electionPhase = applicationData.electionPhase || "unknown";
     render();
 }
 
 /* ---------- rendering ---------- */
 function render() {
-    const open = currentElection && currentElection.formsOpen === true;
-    salesStatus.textContent = open
-        ? "Applications are OPEN. Students can see the positions on their dashboard."
-        : "Applications are CLOSED. Students cannot apply yet.";
+    const isDraft = currentElection && currentElection.status === "draft";
+    const open = isDraft && currentElection.formsOpen === true;
+    const phaseLabels = {
+        draft: "Draft",
+        applications_open: "Applications open",
+        screening: "Screening",
+        voting_published: "Voting published — candidates are on the ballot",
+        voting_open: "Voting open",
+        voting_ended: "Voting ended — awaiting results finalization",
+        results_finalized: "Results finalized",
+        archived: "Historical election",
+        invalid_schedule: "Invalid election schedule",
+        unavailable: "Election unavailable"
+    };
+    salesStatus.textContent = isDraft
+        ? (open ? "Applications are OPEN. Students can see the positions on their dashboard." : "Applications are CLOSED. Screening decisions can still be made before publication.")
+        : `${phaseLabels[electionPhase] || "Election status unavailable"}. This election is read-only here; its application and candidate outcomes are shown below.`;
     toggleSalesBtn.textContent = open ? "CLOSE APPLICATIONS" : "OPEN APPLICATIONS";
+    toggleSalesBtn.style.display = isDraft ? "" : "none";
+    const editor = document.getElementById("position-editor-section");
+    if (editor) editor.hidden = !isDraft;
 
     positionList.textContent = "";
     if (!positions.length) positionList.appendChild(el("p", "No positions yet."));
@@ -112,28 +152,29 @@ function render() {
         info.appendChild(el("p", `${applied} applicant(s)`));
         card.appendChild(info);
 
-        card.appendChild(kebab(`Options for ${position.position}`, [
-            { label: "Edit", onClick: () => startEdit(position) },
-            { label: "Delete", danger: true, onClick: () => removePosition(position) }
-        ]));
+        if (isDraft) {
+            card.appendChild(kebab(`Options for ${position.position}`, [
+                { label: "Edit", onClick: () => startEdit(position) },
+                { label: "Delete", danger: true, onClick: () => removePosition(position) }
+            ]));
+        }
         positionList.appendChild(card);
     });
 
     renderApplicants();
 }
 
-const STATUS_TEXT = {
-    applied: "Candidate",
-    disqualified: "Disqualified"
-};
-
 function renderApplicants() {
     applicantList.textContent = "";
-    const live = applications.filter(a => a.status === "applied").length;
-    moneySummary.textContent = `${applications.length} applicant(s) · ${live} candidate(s) on the ballot list`;
+    const eligible = applications.filter(a => a.candidateEligible && a.storedStatus !== "disqualified").length;
+    const disqualified = applications.filter(a => a.storedStatus === "disqualified").length;
+    const screening = applications.filter(a => ["applied", "screening"].includes(a.status)).length;
+    moneySummary.textContent = currentElection?.status === "draft"
+        ? `${applications.length} applicant(s) · ${screening} awaiting screening · ${disqualified} disqualified`
+        : `${applications.length} applicant(s) · ${eligible} ballot candidate(s) · ${disqualified} disqualified`;
 
     if (!applications.length) {
-        applicantList.appendChild(el("p", "No applicants yet."));
+        applicantList.appendChild(el("p", "No applicants have been recorded for this election."));
         return;
     }
 
@@ -142,18 +183,19 @@ function renderApplicants() {
         const info = el("div", "", "forms-card-main");
         info.appendChild(el("h4", application.studentName || "Unnamed student"));
         info.appendChild(el("p", `${application.matricNumber} · ${application.position}`));
-        const state = el("p", STATUS_TEXT[application.status] || application.status, "forms-status forms-status-" + application.status);
+        const state = el("p", application.statusLabel || "Status unavailable", "forms-status forms-status-" + (application.status || "unknown"));
         info.appendChild(state);
+        if (application.statusMessage) info.appendChild(el("p", application.statusMessage));
         if (application.status === "disqualified" && application.disqualifiedReason) {
             info.appendChild(el("p", "Reason: " + application.disqualifiedReason));
         }
         card.appendChild(info);
 
-        if (application.status === "applied") {
+        if (currentElection?.status === "draft" && application.storedStatus === "applied") {
             card.appendChild(kebab(`Options for ${application.studentName || "this applicant"}`, [
                 { label: "Disqualify", danger: true, onClick: (item) => review(application, "disqualify", item) }
             ]));
-        } else if (application.status === "disqualified") {
+        } else if (currentElection?.status === "draft" && application.storedStatus === "disqualified") {
             card.appendChild(kebab(`Options for ${application.studentName || "this applicant"}`, [
                 { label: "Reinstate", onClick: (item) => review(application, "reinstate", item) }
             ]));
@@ -186,6 +228,7 @@ async function review(application, action, button) {
 }
 
 function startEdit(position) {
+    if (!currentElection || currentElection.status !== "draft") return;
     editingPositionId = position.id;
     positionTitle.textContent = "Edit position";
     positionName.value = position.position || "";
@@ -196,6 +239,7 @@ function startEdit(position) {
 }
 
 async function removePosition(position) {
+    if (!currentElection || currentElection.status !== "draft") return;
     if (applications.some(a => a.positionId === position.id)) {
         alert("Students have already applied for this position, so it cannot be deleted. You can close it to new applications instead (Edit, untick Open for applications).");
         return;
@@ -211,6 +255,10 @@ async function removePosition(position) {
 }
 
 savePositionBtn.addEventListener("click", async () => {
+    if (!currentElection || currentElection.status !== "draft") {
+        say("Positions can only be edited while the election is a draft.", true);
+        return;
+    }
     const name = positionName.value.trim();
 
     if (!name) { say("Enter the position name.", true); return; }
@@ -239,7 +287,11 @@ savePositionBtn.addEventListener("click", async () => {
 cancelEditBtn.addEventListener("click", resetPositionForm);
 
 toggleSalesBtn.addEventListener("click", async () => {
-    const open = currentElection && currentElection.formsOpen === true;
+    if (!currentElection || currentElection.status !== "draft") {
+        say("Applications can only be changed while the election is a draft.", true);
+        return;
+    }
+    const open = currentElection.formsOpen === true;
     if (!open && !positions.some(p => p.active)) {
         say("Add at least one position that is open for applications first.", true);
         return;

@@ -1,5 +1,6 @@
 import { setDigit, readDigit, typedDigit } from "./pin-boxes.js";
 import { buildReceiptCard } from "./receipt-card.js";
+import { bindProfilePreview } from "./profile-preview.js";
 import {
     initializeApp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
@@ -46,6 +47,8 @@ const electionStatus =
 
 const positionsContainer =
     document.getElementById("positions-container");
+
+bindProfilePreview(positionsContainer);
 
 const loadingMessage =
     document.getElementById("loading-message");
@@ -607,7 +610,10 @@ async function loadCandidates() {
 
                     profilePicture:
                         candidate.profilePicture ||
-                        "assets/default-profile.jpg"
+                        "assets/default-profile.jpg",
+
+                    studentProfileId:
+                        candidate.studentProfileId || ""
                 });
             }
         );
@@ -711,53 +717,48 @@ function renderPositions(
                         }
                     );
 
+                    const profileHref = candidate.studentProfileId
+                        ? `student-profile-view.html?id=${encodeURIComponent(candidate.studentProfileId)}&electionId=${encodeURIComponent(electionId)}&candidateId=${encodeURIComponent(candidate.id)}`
+                        : `candidate.html?electionId=${encodeURIComponent(electionId)}&id=${encodeURIComponent(candidate.id)}`;
+
+                    const photoButton =
+                        document.createElement("button");
+                    photoButton.type = "button";
+                    photoButton.className = "voting-candidate-photo";
+                    photoButton.dataset.profilePreview = "true";
+                    photoButton.dataset.profileName = candidate.name;
+                    photoButton.dataset.profilePicture = candidate.profilePicture || "assets/default-profile.jpg";
+                    photoButton.dataset.profileRole = position;
+                    photoButton.dataset.profileInfoHref = profileHref;
+                    photoButton.setAttribute("aria-label", `Preview ${candidate.name}'s profile picture`);
+
                     const image =
-                        document.createElement(
-                            "img"
-                        );
-
-                    image.src =
-                        candidate.profilePicture ||
-                        "assets/default-profile.jpg";
-
-                    image.alt =
-                        candidate.name;
-
-                    image.className =
-                        "candidate-profile-picture";
-
-                    image.onerror =
-                        () => {
-                            image.src =
-                                "assets/default-profile.jpg";
-                        };
+                        document.createElement("img");
+                    image.src = candidate.profilePicture || "assets/default-profile.jpg";
+                    image.alt = `${candidate.name} profile picture`;
+                    image.className = "candidate-profile-picture";
+                    image.onerror = () => { image.src = "assets/default-profile.jpg"; };
+                    photoButton.appendChild(image);
 
                     const candidateInfo =
-                        document.createElement(
-                            "span"
-                        );
-
-                    candidateInfo.className =
-                        "candidate-info";
+                        document.createElement("span");
+                    candidateInfo.className = "candidate-info";
 
                     const candidateName =
-                        document.createElement(
-                            "strong"
-                        );
+                        document.createElement("a");
+                    candidateName.className = "voting-candidate-profile-link";
+                    candidateName.href = profileHref;
+                    candidateName.textContent = candidate.name;
+                    candidateName.addEventListener("click", event => event.stopPropagation());
 
-                    candidateName.textContent =
-                        candidate.name;
-
-                    candidateInfo.appendChild(
-                        candidateName
-                    );
+                    candidateInfo.appendChild(candidateName);
 
                     candidateLabel.appendChild(
                         radio
                     );
 
                     candidateLabel.appendChild(
-                        image
+                        photoButton
                     );
 
                     candidateLabel.appendChild(

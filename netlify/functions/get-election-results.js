@@ -21,6 +21,7 @@
 const admin = require("firebase-admin");
 const { jsonResponse, logError } = require("./_lib/guard");
 const { loadAllSelections } = require("./_lib/ballots");
+const { isFinalizedResults } = require("./_lib/election-lifecycle");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -165,26 +166,63 @@ async function getResults(event) {
             return fail(400, "Election ID is required.");
         }
 
-        const cached = resultCache.get(electionId);
-        if (cached && Date.now() - cached.at < cached.ttl) {
-            return jsonResponse(200, cached.payload);
+        const electionSnap = await db.collection("elections").doc(electionId).get();
+        const finalSnap = await db.collection("results").doc(electionId).get();
+        const election = electionSnap.exists ? electionSnap.data() : null;
+        const finalResults = finalSnap.exists ? finalSnap.data() : null;
+
+        // A finalized result is the historical source of truth. Serve it even
+        // if the election's stored publication label later changes or the
+        // election record is missing after a manual legacy-data deletion.
+        const isFinalResult = isFinalizedResults(finalResults);
+        if (isFinalResult) {
+            const finalStart = election ? toDate(election.startAt) : null;
+            const finalEnd = election ? toDate(election.endAt) : null;
+            const finalizedAt = finalResults.finalizedAt?.toDate
+                ? finalResults.finalizedAt.toDate().toISOString()
+                : finalResults.finalizedAt || null;
+            const payload = {
+                success: true,
+                finalized: true,
+                electionStatus: "ended",
+                election: {
+                    id: electionId,
+                    title: election?.title || finalResults.title || "",
+                    description: election?.description || finalResults.description || "",
+                    startAt: finalStart && !Number.isNaN(finalStart.getTime()) ? finalStart.toISOString() : null,
+                    endAt: finalEnd && !Number.isNaN(finalEnd.getTime()) ? finalEnd.toISOString() : null
+                },
+                positions: finalResults.positions,
+                totalVotes: Number(finalResults.totalVotes || 0),
+                finalizedAt
+            };
+            resultCache.set(electionId, { at: Date.now(), ttl: FINAL_CACHE_MS, payload });
+            return jsonResponse(200, payload);
         }
 
-        const electionSnap = await db.collection("elections").doc(electionId).get();
-        if (!electionSnap.exists) {
-            return fail(404, "Election not found.");
-        }
-        const election = electionSnap.data();
-        if (election.status !== "published") {
+        if (!election) return fail(404, "Election not found.");
+        if (!["published", "ended"].includes(election.status)) {
             return fail(403, "Results are not available for this election.");
         }
 
         const now = new Date();
         const startAt = toDate(election.startAt);
         const endAt = toDate(election.endAt);
+        if (!startAt || !endAt || Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime()) || endAt <= startAt) {
+            return fail(400, "Election timing is not configured correctly.");
+        }
+
         let electionStatus = "upcoming";
         if (now >= startAt && now < endAt) electionStatus = "active";
-        if (now >= endAt) electionStatus = "ended";
+        if (election.status === "ended" || now >= endAt) electionStatus = "ended";
+
+        // Check the live cache only after checking Firestore for final results.
+        // This prevents a previously cached provisional tally hiding a newly
+        // finalized result or continuing to look live after closing time.
+        const cached = resultCache.get(electionId);
+        if (electionStatus !== "ended" && cached && Date.now() - cached.at < cached.ttl) {
+            return jsonResponse(200, cached.payload);
+        }
 
         const electionInfo = {
             id: electionId,
@@ -194,28 +232,7 @@ async function getResults(event) {
             endAt: endAt.toISOString()
         };
 
-        /* Finalized: serve the stored result. */
-        if (electionStatus === "ended") {
-            const finalSnap = await db.collection("results").doc(electionId).get();
-            if (finalSnap.exists) {
-                const finalResults = finalSnap.data();
-                const payload = {
-                    success: true,
-                    finalized: true,
-                    electionStatus,
-                    election: electionInfo,
-                    positions: finalResults.positions || [],
-                    totalVotes: finalResults.totalVotes || 0,
-                    finalizedAt: finalResults.finalizedAt?.toDate
-                        ? finalResults.finalizedAt.toDate().toISOString()
-                        : finalResults.finalizedAt || null
-                };
-                resultCache.set(electionId, { at: Date.now(), ttl: FINAL_CACHE_MS, payload });
-                return jsonResponse(200, payload);
-            }
-        }
-
-        /* Live (or ended-but-not-yet-finalized): counters, verified. */
+        /* Live or ended-but-not-yet-finalized: count accurately, but never label it final. */
         const candidatesSnap = await db
             .collection("candidates")
             .where("electionId", "==", electionId)
@@ -228,9 +245,7 @@ async function getResults(event) {
         } catch (tallyError) {
             logError("Tally read failed, recounting", tallyError);
         }
-        if (!tally) {
-            tally = await scanVotes(electionId);
-        }
+        if (!tally) tally = await scanVotes(electionId);
 
         const payload = {
             success: true,
@@ -241,7 +256,6 @@ async function getResults(event) {
             totalVotes: tally.totalVotes
         };
 
-        /* An ended election is about to be finalized: do not serve it stale. */
         if (electionStatus !== "ended") {
             resultCache.set(electionId, { at: Date.now(), ttl: CACHE_MS, payload });
         }
@@ -251,7 +265,7 @@ async function getResults(event) {
             return fail(401, "Your session has expired. Please log in again.");
         }
         logError("Get election results error", error);
-        return fail(500, "Unable to load election results.");
+        return fail(500, "Unable to load results.");
     }
 }
 

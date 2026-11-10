@@ -1,4 +1,5 @@
 import { kebab } from "./row-menu.js";
+import { bindProfilePreview } from "./profile-preview.js";
 import {
     initializeApp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
@@ -73,6 +74,8 @@ const candidateMessage =
 const candidateList =
     document.getElementById("candidateList");
 
+if (candidateList) bindProfilePreview(candidateList);
+
 const backBtn =
     document.getElementById("backBtn");
 
@@ -82,6 +85,8 @@ let selectedStudent = null;
 
 const urlParams =
     new URLSearchParams(window.location.search);
+
+const studentProfileId = value => String(value || "").trim().toUpperCase().replace(/\s+/g, "").replace(/[^A-Z0-9]/g, "_");
 
 const electionId =
     urlParams.get("id");
@@ -933,10 +938,9 @@ async function loadCandidates() {
                     >
 
                         <h4>
-                            ${escapeHtml(
-                                candidate.name ||
-                                "Unnamed Candidate"
-                            )}
+                            <a class="admin-candidate-profile-link" href="${candidate.matricNumber ? `student-profile-view.html?id=${encodeURIComponent(studentProfileId(candidate.matricNumber))}` : `candidate.html?electionId=${encodeURIComponent(currentElection?.id || "")}&id=${encodeURIComponent(candidate.id || "")}`}">
+                                ${escapeHtml(candidate.name || "Unnamed Candidate")}
+                            </a>
                         </h4>
 
                         <p>
@@ -969,13 +973,19 @@ async function loadCandidates() {
                     );
 
                 if (imageElement) {
-
-                    imageElement.onerror =
-                        () => {
-
-                            imageElement.src =
-                                "assets/default-profile.jpg";
-                        };
+                    imageElement.dataset.profilePreview = "true";
+                    imageElement.dataset.profileName = candidate.name || "Student";
+                    imageElement.dataset.profilePicture = image;
+                    imageElement.dataset.profileRole = candidate.position || "Candidate";
+                    imageElement.dataset.profileInfoHref = candidate.matricNumber
+                        ? `student-profile-view.html?id=${encodeURIComponent(studentProfileId(candidate.matricNumber))}`
+                        : `candidate.html?electionId=${encodeURIComponent(currentElection?.id || "")}&id=${encodeURIComponent(candidate.id || "")}`;
+                    imageElement.style.cursor = "pointer";
+                    imageElement.title = "View profile picture and information";
+                    imageElement.onerror = () => {
+                        imageElement.src = "assets/default-profile.jpg";
+                        imageElement.dataset.profilePicture = "assets/default-profile.jpg";
+                    };
                 }
 
                 if (currentElection && currentElection.status === "draft") {

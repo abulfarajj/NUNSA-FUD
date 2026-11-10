@@ -7,6 +7,7 @@
 const admin = require("firebase-admin");
 const { jsonResponse, logError } = require("./_lib/guard");
 const forms = require("./_lib/forms");
+const { isFinalizedResults, toMillis } = require("./_lib/election-lifecycle");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -46,6 +47,9 @@ exports.handler = async event => {
         if (!electionSnap.exists) return fail(404, "Election not found.");
         const election = electionSnap.data();
         if (!["published", "ended"].includes(election.status)) return fail(403, "This election is not publicly available.");
+        const resultsSnap = await db.collection("results").doc(electionId).get();
+        const finalResult = resultsSnap.exists ? resultsSnap.data() : null;
+        const finalized = isFinalizedResults(finalResult);
 
         const snap = await db.collection("candidates").where("electionId", "==", electionId).get();
         const candidates = snap.docs.map(doc => {
@@ -55,7 +59,7 @@ exports.handler = async event => {
                 name: clean(d.name, 100) || "Unnamed candidate",
                 position: clean(d.position, 80) || "General",
                 profilePicture: clean(d.profilePicture || d.image, 800) || "assets/default-profile.jpg",
-                biography: clean(d.biography || d.bio, 1200),
+                biography: clean(typeof d.biography === "string" ? d.biography : d.bio, 1200),
                 matric: clean(d.matricNumber, 40),
                 mandate: clean(d.mandate || d.manifesto, 4000),
                 manifesto: clean(d.manifesto, 4000),
@@ -66,15 +70,29 @@ exports.handler = async event => {
         /* A candidate's level comes from their student record. It is optional, so a failed lookup never blocks the page. */
         try {
             const matrics = [...new Set(candidates.map(c => c.matric).filter(Boolean))];
-            const levels = {};
+            const levels = {}, studentProfiles = {};
             for (let i = 0; i < matrics.length; i += 30) {
                 const group = await db.collection("students").where("matricNumber", "in", matrics.slice(i, i + 30)).get();
                 group.docs.forEach(doc => {
-                    const level = clean(doc.data().academicLevel || doc.data().level, 30);
-                    if (level) levels[doc.data().matricNumber] = /^\d+$/.test(level) ? level + " Level" : level;
+                    const record = doc.data();
+                    const matric = String(record.matricNumber || "");
+                    const level = clean(record.academicLevel || record.level, 30);
+                    if (level) levels[matric] = /^\d+$/.test(level) ? level + " Level" : level;
+                    studentProfiles[matric] = {
+                        id: doc.id,
+                        biography: clean(typeof record.biography === "string" ? record.biography : record.bio, 1200),
+                        profilePicture: clean(record.profilePicture, 800)
+                    };
                 });
             }
-            candidates.forEach(c => { if (levels[c.matric]) c.level = levels[c.matric]; });
+            candidates.forEach(c => {
+                if (levels[c.matric]) c.level = levels[c.matric];
+                if (studentProfiles[c.matric]) {
+                    c.studentProfileId = studentProfiles[c.matric].id;
+                    c.biography = studentProfiles[c.matric].biography;
+                    c.profilePicture = studentProfiles[c.matric].profilePicture || c.profilePicture;
+                }
+            });
         } catch (error) {
             logError("Candidate level lookup failed", error);
         }
@@ -95,6 +113,8 @@ exports.handler = async event => {
                 endAt: election.endAt && election.endAt.toMillis ? election.endAt.toMillis() : (election.endAt ? new Date(election.endAt).getTime() : 0),
                 termEndsAt: election.termEndsAt && election.termEndsAt.toMillis ? election.termEndsAt.toMillis() : (election.termEndsAt ? new Date(election.termEndsAt).getTime() : 0)
             },
+            finalized,
+            finalizedAt: finalized ? toMillis(finalResult.finalizedAt) : null,
             totalCandidates: candidates.length,
             totalPositions: positions.length,
             positions,

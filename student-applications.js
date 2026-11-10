@@ -12,12 +12,6 @@ const count = $("mandate-count");
 let selectedApplication = null;
 let busy = false;
 
-const statusText = {
-  applied: "Submitted. Your application is awaiting screening by the electoral committee.",
-  disqualified: "You were disqualified after screening.",
-  approved: "Approved for the ballot."
-};
-
 function node(tag, className, text) {
   const item = document.createElement(tag);
   if (className) item.className = className;
@@ -63,10 +57,11 @@ function renderApplications(applications) {
   applications.forEach(application => {
     const card = node("article", "application-status-card");
     const copy = node("div", "application-status-copy");
-    copy.append(node("span", "application-status-tag " + (application.status === "disqualified" ? "is-disqualified" : ""), application.status || "Submitted"));
+    const statusCode = String(application.status || "unknown");
+    copy.append(node("span", "application-status-tag " + (statusCode === "disqualified" ? "is-disqualified" : ""), application.statusLabel || statusCode));
     copy.append(node("h3", "", application.position || "Position"));
     copy.append(node("p", "", application.electionTitle || "Election"));
-    copy.append(node("p", "", statusText[application.status] || String(application.status || "Status unavailable")));
+    copy.append(node("p", "", application.statusMessage || "Your application status is unavailable."));
     if (application.disqualifiedReason) copy.append(node("p", "application-reason", `Reason: ${application.disqualifiedReason}`));
     card.append(copy);
     applicationsRoot.append(card);

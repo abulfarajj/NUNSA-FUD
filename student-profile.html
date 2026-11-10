@@ -63,7 +63,7 @@
   <main class="student-subpage-main">
     <section class="page-intro">
       <h1>My profile</h1>
-      <p class="intro-copy">View your registered student details and manage your profile picture.</p>
+      <p class="intro-copy">Manage your profile picture and add a short biography that other signed-in students can read.</p>
     </section>
     <section class="profile-page-card">
       <div class="profile-page-photo">
@@ -77,6 +77,14 @@
         <div><span>Matriculation number</span><strong id="profile-matric-secondary">Loading…</strong></div>
         <div><span>Academic level</span><strong id="profile-level-secondary">Not provided</strong></div>
       </div>
+    </section>
+    <section class="dashboard-section profile-bio-editor">
+      <h2>My biography</h2>
+      <p class="profile-bio-help">Tell other NUNSA-FUD students a little about yourself. Your biography is visible on your student profile.</p>
+      <label for="student-biography">About me</label>
+      <textarea id="student-biography" maxlength="1200" rows="6" placeholder="Write a short biography…"></textarea>
+      <div class="form-actions"><button class="vote-button" id="save-biography" type="button">SAVE BIOGRAPHY</button></div>
+      <p id="profile-bio-message" class="inline-message" aria-live="polite"></p>
     </section>
     <p id="profile-picture-message" class="inline-message" aria-live="polite"></p>
     <p id="student-page-message" class="inline-message" role="status"></p>

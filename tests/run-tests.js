@@ -40,10 +40,13 @@ process.env.TELEGRAM_BOT_TOKEN = "123:test-token";
 process.env.TELEGRAM_WEBHOOK_SECRET = "s3cret-webhook";
 global.fetch = async (url, opts) => {
     if (String(url).startsWith("https://api.telegram.org/bot123:test-token/")) {
-        const payload = opts.body instanceof FormData
-            ? { isFormData: true }
-            : JSON.parse(opts.body);
-        tgCalls.push({ method: String(url).split("/").pop(), payload });
+        tgCalls.push({
+            method: String(url).split("/").pop(),
+            payload: typeof opts.body === "string" ? JSON.parse(opts.body) : { multipart: true }
+        });
+        return { ok: true, status: 200, json: async () => ({ ok: true }) };
+    }
+    if (typeof opts.body !== "string") {
         return { ok: true, status: 200, json: async () => ({ ok: true }) };
     }
     sentEmails.push(JSON.parse(opts.body));
@@ -235,6 +238,44 @@ const ADMIN = "admin1|admin@nunsa.org";
         ok(!JSON.stringify(result).includes("A/1"), "voter matric in results");
     });
 
+    await test("ended election results stay provisional until finalized; finalized results are immutable and retry-safe", async () => {
+        seedElection(); seedAdmins();
+        store.set("elections/E1", { ...store.get("elections/E1"), startAt: Timestamp.fromMillis(Date.now() - 2 * 3600e3), endAt: Timestamp.fromMillis(Date.now() - 1000) });
+        store.set("ballots/e1b1", { electionId: "E1", selections: BALLOT });
+        store.set("votes/E1_A", { electionId: "E1", matricNumber: "A/1", authUid: "a" });
+        let r = await call("get-election-results.js", { method: "GET", token: SUPER, query: { id: "E1" } });
+        eq(r.status, 200, r.message); eq(r.finalized, false); eq(r.electionStatus, "ended");
+
+        r = await call("finalize-election-results.js", { token: SUPER, body: { electionId: "E1" } });
+        eq(r.status, 200, r.message); eq(r.alreadyFinalized, false); ok(r.result.finalizedAt, "finalizedAt missing");
+        const snapshot = JSON.stringify(store.get("results/E1"));
+        const retry = await call("finalize-election-results.js", { token: SUPER, body: { electionId: "E1" } });
+        eq(retry.status, 200, retry.message); eq(retry.alreadyFinalized, true);
+        eq(JSON.stringify(store.get("results/E1")), snapshot, "a retry overwrote finalized results");
+        const finalView = await call("get-election-results.js", { method: "GET", token: SUPER, query: { id: "E1" } });
+        eq(finalView.status, 200, finalView.message); eq(finalView.finalized, true);
+    });
+
+    await test("incomplete results records are not shown as finalized or overwritten by finalization", async () => {
+        seedElection({ id: "E1" }); seedAdmins(); seedStudent({ withAccount: true });
+        store.set("elections/E1", { ...store.get("elections/E1"), startAt: Timestamp.fromMillis(Date.now() - 2 * 3600e3), endAt: Timestamp.fromMillis(Date.now() - 1000) });
+        store.set("applications/app-incomplete", { electionId: "E1", studentDocumentId: DOC_ID, candidateId: "c1", position: "President", status: "applied" });
+        const incomplete = { electionId: "E1", positions: [{ position: "President", candidates: [{ id: "c1", votes: 9 }] }] };
+        store.set("results/E1", incomplete);
+
+        const offers = await call("get-form-offers.js", { method: "GET", token: `uid-${DOC_ID}|s@x.com|${MATRIC}` });
+        eq(offers.status, 200, offers.message);
+        eq(offers.applications[0].status, "awaiting_results");
+        eq(offers.applications[0].finalized, false);
+
+        const resultView = await call("get-election-results.js", { method: "GET", token: SUPER, query: { id: "E1" } });
+        eq(resultView.status, 200, resultView.message); eq(resultView.finalized, false);
+
+        const finalize = await call("finalize-election-results.js", { token: SUPER, body: { electionId: "E1" } });
+        eq(finalize.status, 409, "an incomplete existing record was treated as finalized");
+        eq(JSON.stringify(store.get("results/E1")), JSON.stringify(incomplete), "incomplete historical record was overwritten");
+    });
+
     await test("migration script: separates old votes from their choices, keeps counts identical, safe to re-run", async () => {
         seedElection({ id: "E3" });
         store.set("votes/E3_A1", { electionId: "E3", matricNumber: "A/1", authUid: "a", selections: BALLOT });
@@ -365,12 +406,59 @@ const ADMIN = "admin1|admin@nunsa.org";
         let r = await call("get-form-offers.js", { method: "GET", token: studentToken() });
         eq(r.status, 200, r.message);
         eq(r.offers.length, 1); eq(r.offers[0].positions.length, 2, "inactive position must be hidden");
+        eq(r.lifecycleElections.length, 1); eq(r.lifecycleElections[0].phase, "applications_open");
         eq(r.applications.length, 0, "must not see another student's application");
         ok(!JSON.stringify(r.offers).includes("createdBy"), "internal fields leaked");
         await apply({ positionId: "pres" });
         r = await call("get-form-offers.js", { method: "GET", token: studentToken() });
         eq(r.applications.length, 1); eq(r.applications[0].status, "applied");
     });
+    await test("dashboard lifecycle feed identifies screening after applications close", async () => {
+        seedStudent({ withAccount: true });
+        draftElection({ formsOpen: false });
+        store.set("applications/F1_OTHER", { electionId: "F1", studentDocumentId: "FUD_21_002", position: "President", status: "applied" });
+        const r = await call("get-form-offers.js", { method: "GET", token: studentToken() });
+        eq(r.status, 200, r.message);
+        eq(r.lifecycleElections.length, 1);
+        eq(r.lifecycleElections[0].phase, "screening");
+        eq(r.offers.length, 0, "closed application form should not appear as an open offer");
+        ok(!JSON.stringify(r.lifecycleElections).includes("matricNumber"), "private student field exposed in dashboard lifecycle feed");
+    });
+
+    await test("application progression: submitted -> awaiting results -> elected, from finalized results only", async () => {
+        seedStudent({ withAccount: true }); draftElection();
+        await apply({ positionId: "pres" });
+        let r = await call("get-form-offers.js", { method: "GET", token: studentToken() });
+        eq(r.applications[0].status, "applied");
+        eq(r.applications[0].statusLabel, "Submitted");
+
+        const now = Date.now();
+        store.set("elections/F1", { ...store.get("elections/F1"), status: "published", startAt: Timestamp.fromMillis(now - 2 * 3600e3), endAt: Timestamp.fromMillis(now - 1000) });
+        r = await call("get-form-offers.js", { method: "GET", token: studentToken() });
+        eq(r.applications[0].status, "awaiting_results", "an ended election must not remain APPLIED");
+        eq(r.applications[0].statusLabel, "Awaiting results");
+        eq(r.applications[0].finalized, false);
+
+        const candidateId = "form_F1_" + DOC_ID;
+        store.set("results/F1", { electionId: "F1", finalized: true, finalizedAt: Timestamp.now(), positions: [{
+            position: "President", totalVotes: 7,
+            candidates: [{ id: candidateId, votes: 5 }, { id: "other-candidate", votes: 2 }]
+        }] });
+        r = await call("get-form-offers.js", { method: "GET", token: studentToken() });
+        eq(r.applications[0].status, "elected");
+        eq(r.applications[0].statusLabel, "Elected");
+        eq(r.applications[0].finalized, true);
+    });
+    await test("application outcome distinguishes tie, zero votes and a non-winner", async () => {
+        const { applicationOutcome } = require("../netlify/functions/_lib/election-lifecycle");
+        const election = { status: "published", startAt: Timestamp.fromMillis(Date.now() - 3600e3), endAt: Timestamp.fromMillis(Date.now() - 1000) };
+        const application = { status: "applied", position: "President", candidateId: "mine" };
+        const result = votes => ({ finalized: true, finalizedAt: Timestamp.now(), positions: [{ position: "President", candidates: votes }] });
+        eq(applicationOutcome(application, election, result([{ id: "mine", votes: 2 }, { id: "other", votes: 2 }])).code, "tie");
+        eq(applicationOutcome(application, election, result([{ id: "mine", votes: 0 }, { id: "other", votes: 0 }])).code, "no_votes");
+        eq(applicationOutcome(application, election, result([{ id: "mine", votes: 1 }, { id: "other", votes: 3 }])).code, "not_elected");
+    });
+
     await test("admin disqualify removes a candidate from the ballot list; reinstate restores; logged; frozen after publish", async () => {
         seedAdmins(); seedStudent({ withAccount: true }); draftElection();
         await apply({ positionId: "pres" });
@@ -395,6 +483,12 @@ const ADMIN = "admin1|admin@nunsa.org";
         await call("review-application.js", { token: ADMIN, body: { applicationId: "F1_FUD_21_002", action: "disqualify", reason: "x" } });
         const onBallot = (await fake.firestore().collection("candidates").where("electionId", "==", "F1").where("status", "==", "active").get()).docs.map(d => d.data().matricNumber).sort();
         eq(onBallot.join(), "FUD/21/001,FUD/21/003");
+    });
+    await test("delete election: finalized historical results cannot be deleted even when there are no votes", async () => {
+        seedAdmins(); draftElection();
+        store.set("results/F1", { electionId: "F1", finalized: true, finalizedAt: Timestamp.now(), positions: [] });
+        const r = await call("delete-election.js", { token: SUPER, body: { electionId: "F1", confirmTitle: "NUNSA 2026" } });
+        eq(r.status, 409); ok(store.has("elections/F1"), "election record was deleted"); ok(store.has("results/F1"), "historical results were deleted");
     });
     await test("delete election: Super Admin + exact title; refused once votes exist; removes everything including applications", async () => {
         seedAdmins(); draftElection(); await seedApplicants(2);
@@ -534,7 +628,7 @@ const ADMIN = "admin1|admin@nunsa.org";
         eq(ballots.length, 1); eq(ballots[0].selections.map(x => x.candidateId).sort().join(), "c1,c4");
         ok(!sentTexts().some(t => t.includes(PIN)), "PIN echoed");
         await say(CHAT, "/vote"); ok(lastText().includes("no election open"), lastText());
-        await say(CHAT, "/myvote"); ok(lastText().includes("you have voted") && lastText().includes("NUNSA-"));
+        await say(CHAT, "/myvote"); ok(lastText().toLowerCase().includes("you have voted") && lastText().includes("NUNSA-"));
     });
     await test("bot: you cannot vote if you are not on the voter list, and /cancel abandons a ballot", async () => {
         seedStudent({ withAccount: true }); seedElection();
@@ -570,9 +664,20 @@ const ADMIN = "admin1|admin@nunsa.org";
         store.set("votes/E7_B", { electionId: "E7", matricNumber: "B/1", authUid: "b" });
         await say(CHAT, "/results"); ok(buttonsOfLast().some(b => b.text.includes("ended")));
         await press(CHAT, "rs:0");
-        ok(lastText().includes("President") && lastText().includes("Ada: 2 (100%)"), lastText());
+        ok(lastText().includes("PROVISIONAL TALLY") && lastText().includes("President") && lastText().includes("Ada: 2 (100%)"), lastText());
         ok(!lastText().includes("FUD") && !lastText().includes("A/1"), "voter data in results");
-        await press(CHAT, "rs:0"); // second press of an old button still works only from a fresh picker; stale keyboard is removed
+
+        // Telegram must distinguish the provisional tally from the official result.
+        store.set("results/E7", {
+            electionId: "E7", finalized: true, finalizedAt: Timestamp.fromMillis(Date.now()), totalVotes: 2,
+            positions: [{ position: "President", totalVotes: 2, candidates: [
+                { id: "c1", name: "Ada", votes: 2, percentage: 100 },
+                { id: "c2", name: "Bola", votes: 0, percentage: 0 }
+            ] }]
+        });
+        await say(CHAT, "/results"); await press(CHAT, "rs:0");
+        ok(lastText().includes("FINALIZED RESULTS") && !lastText().includes("PROVISIONAL TALLY"), lastText());
+        await press(CHAT, "rs:0"); // stale keyboard is removed after the tap
         ok(tgCalls.some(c => c.method === "editMessageReplyMarkup"), "buttons not cleared after a tap");
     });
     await test("bot: /candidates asks which election, then shows only that election's candidates", async () => {
@@ -641,26 +746,170 @@ const ADMIN = "admin1|admin@nunsa.org";
         eq((await announce({ action: "delete", id: made.id }, studentToken())).status, 403, "student deleted");
         eq((await announce({ action: "delete", id: made.id })).status, 200); eq((await feed()).announcements.length, 0);
     });
-    await test("announcements: a winner holds the office 2 hours after voting ends, and can then post", async () => {
-        seedAdmins(); seedStudent({ withAccount: true });
-        const endedHoursAgo = hours => {
-            const now = Date.now();
-            store.set("elections/E9", { title: "Test 9", status: "published", startAt: Timestamp.fromMillis(now - (hours + 3) * 3600e3), endAt: Timestamp.fromMillis(now - hours * 3600e3) });
-            store.set("candidates/w1", { electionId: "E9", position: "President", name: "Real Student", matricNumber: MATRIC, status: "active" });
-            store.set("candidates/w2", { electionId: "E9", position: "President", name: "Other", matricNumber: "OTHER/1", status: "active" });
-            store.set("votes/E9_A", { electionId: "E9", matricNumber: "A/1", authUid: "a", selections: [{ position: "President", candidateId: "w1" }] });
-            store.set("votes/E9_B", { electionId: "E9", matricNumber: "B/1", authUid: "b", selections: [{ position: "President", candidateId: "w1" }] });
-        };
-        endedHoursAgo(1);
+    await test("announcements: only finalized winners hold offices; old holder remains until handover", async () => {
+        seedAdmins();
+        seedStudent({ withAccount: true });
+        const OLD_TOKEN = studentToken();
+        const NEW_MATRIC = "FUD/21/002", NEW_DOC = "FUD_21_002";
+        seedStudent({ matric: NEW_MATRIC, docId: NEW_DOC, email: "new.student@fud.edu.ng", withAccount: true });
+        const NEW_TOKEN = studentToken(NEW_DOC, NEW_MATRIC);
+        const now = Date.now();
+        store.set("elections/E9", {
+            title: "Previous election", status: "published",
+            startAt: Timestamp.fromMillis(now - 3 * 86400e3), endAt: Timestamp.fromMillis(now - 2 * 86400e3),
+            createdAt: Timestamp.fromMillis(now - 4 * 86400e3)
+        });
+        store.set("candidates/old-winner", { electionId: "E9", position: "President", name: "Real Student", matricNumber: MATRIC, status: "active" });
+        store.set("candidates/old-runner", { electionId: "E9", position: "President", name: "Other Student", matricNumber: "FUD/21/099", status: "active" });
+        store.set("results/E9", { electionId: "E9", finalized: true, finalizedAt: Timestamp.fromMillis(now - 500), positions: [{
+            position: "President", candidates: [{ id: "old-winner", votes: 8 }, { id: "old-runner", votes: 4 }]
+        }] });
+
+        // A newer election has started, but its result has NOT been finalized. The incumbent stays in office.
+        store.set("elections/E10", {
+            title: "Current election", status: "published",
+            startAt: Timestamp.fromMillis(now - 3600e3), endAt: Timestamp.fromMillis(now + 3600e3),
+            createdAt: Timestamp.fromMillis(now - 2 * 86400e3)
+        });
+        store.set("candidates/new-winner", { electionId: "E10", position: "President", name: "New Student", matricNumber: NEW_MATRIC, status: "active" });
+        store.set("candidates/new-runner", { electionId: "E10", position: "President", name: "Another Student", matricNumber: "FUD/21/098", status: "active" });
+
+        let oldMe = await call("announcements.js", { method: "GET", token: OLD_TOKEN, query: { me: "1" } });
+        eq(oldMe.status, 200); eq(oldMe.canPost, true); eq(oldMe.offices.length, 1);
+        let newMe = await call("announcements.js", { method: "GET", token: NEW_TOKEN, query: { me: "1" } });
+        eq(newMe.status, 200); eq(newMe.canPost, false); eq(newMe.offices.length, 0);
+        const oldPost = await announce(post({ authorName: "Real Student", authorPosition: "President" }), OLD_TOKEN);
+        eq(oldPost.status, 200, "incumbent should remain permitted before handover");
+
+        // Finalization is the handover point. A provisional or live tally is not enough.
+        store.set("results/E10", { electionId: "E10", finalized: true, finalizedAt: Timestamp.fromMillis(now - 86400e3), positions: [{
+            position: "President", candidates: [{ id: "new-winner", votes: 9 }, { id: "new-runner", votes: 3 }]
+        }] });
+        oldMe = await call("announcements.js", { method: "GET", token: OLD_TOKEN, query: { me: "1" } });
+        eq(oldMe.status, 200); eq(oldMe.canPost, false); eq(oldMe.offices.length, 0, "previous president retained office after finalization");
+        newMe = await call("announcements.js", { method: "GET", token: NEW_TOKEN, query: { me: "1" } });
+        eq(newMe.status, 200); eq(newMe.canPost, true); eq(newMe.offices.length, 1);
+        eq(newMe.offices[0].position, "President"); eq(newMe.offices[0].electionId, "E10");
+        eq((await announce(post({ authorName: "Real Student", authorPosition: "President" }), OLD_TOKEN)).status, 403, "former holder can still post");
+        eq((await announce(post({ authorName: "New Student", authorPosition: "President" }), NEW_TOKEN)).status, 200, "new president cannot post");
+        const retainedHistory = await feed(OLD_TOKEN);
+        ok(retainedHistory.announcements.some(item => item.title === "Voting closes Friday"), "handover must not erase the former holder's historical announcement");
+
+        const profile = await call("get-student-profile.js", { method: "GET", token: OLD_TOKEN, query: { id: DOC_ID } });
+        eq(profile.status, 200); eq(profile.profile.offices.length, 0, "former president still appears as a current office holder");
+    });
+    await test("surviving finalized results preserve office recognition when an election document is missing", async () => {
+        seedStudent({ withAccount: true });
+        const now = Date.now();
+        store.set("candidates/orphan-winner", { electionId: "ORPHAN", position: "President", name: "Real Student", matricNumber: MATRIC, status: "active" });
+        store.set("results/ORPHAN", { electionId: "ORPHAN", title: "Previous election", finalized: true, finalizedAt: Timestamp.fromMillis(now - 86400e3), positions: [{ position: "President", candidates: [{ id: "orphan-winner", votes: 8 }] }] });
         let me = await call("announcements.js", { method: "GET", token: studentToken(), query: { me: "1" } });
-        eq(me.status, 200, me.message); eq(me.offices.length, 0, "office given before 2 hours"); eq(me.canPost, false);
-        endedHoursAgo(2.5);
-        const list = await feed();
-        eq(list.status, 200, list.message); eq(list.canPost, true, "winner cannot post"); eq(list.announcements.length, 0);
+        eq(me.status, 200); eq(me.offices.length, 1); eq(me.offices[0].electionId, "ORPHAN");
+
+        store.set("elections/NEW", { title: "Replacement election", status: "published", createdAt: Timestamp.fromMillis(now - 12 * 3600e3), startAt: Timestamp.fromMillis(now - 10 * 3600e3), endAt: Timestamp.fromMillis(now - 6 * 3600e3) });
+        store.set("candidates/new-pres", { electionId: "NEW", position: "President", name: "New Student", matricNumber: "FUD/21/002", status: "active" });
+        store.set("results/NEW", { electionId: "NEW", title: "Replacement election", finalized: true, finalizedAt: Timestamp.fromMillis(now - 1000), startAt: Timestamp.fromMillis(now - 10 * 3600e3), createdAt: Timestamp.fromMillis(now - 12 * 3600e3), positions: [{ position: "President", candidates: [{ id: "new-pres", votes: 10 }] }] });
         me = await call("announcements.js", { method: "GET", token: studentToken(), query: { me: "1" } });
-        eq(me.offices.length, 1); eq(me.offices[0].position, "President");
-        const made = await announce(post({ authorPosition: "President", authorName: "Real Student" }), studentToken());
-        eq(made.status, 200, made.message);
+        eq(me.status, 200); eq(me.offices.length, 0, "former office holder remained current after replacement finalized");
+    });
+
+    await test("announcements: blank tenure has no automatic expiry; a configured tenure ends at its date", async () => {
+        seedStudent({ withAccount: true });
+        const now = Date.now();
+        const seedTenuredWinner = (electionId, termEndsAt) => {
+            store.set("elections/" + electionId, { title: electionId, status: "published", startAt: Timestamp.fromMillis(now - 86400e3), endAt: Timestamp.fromMillis(now - 72000e3), createdAt: Timestamp.fromMillis(now - 90000e3), ...(termEndsAt ? { termEndsAt } : {}) });
+            store.set("candidates/" + electionId + "-winner", { electionId, position: "Treasurer", name: "Real Student", matricNumber: MATRIC, status: "active" });
+            store.set("results/" + electionId, { electionId, finalized: true, finalizedAt: Timestamp.fromMillis(now - 36000e3), positions: [{ position: "Treasurer", candidates: [{ id: electionId + "-winner", votes: 3 }] }] });
+        };
+        seedTenuredWinner("E11", null);
+        let me = await call("announcements.js", { method: "GET", token: studentToken(), query: { me: "1" } });
+        eq(me.canPost, true, "blank tenure should not expire automatically");
+
+        fake.__reset();
+        seedStudent({ withAccount: true });
+        seedTenuredWinner("E12", Timestamp.fromMillis(now - 1000));
+        me = await call("announcements.js", { method: "GET", token: studentToken(), query: { me: "1" } });
+        eq(me.status, 200); eq(me.canPost, false); eq(me.offices.length, 0, "expired tenure still has office permission");
+        eq((await announce(post({ authorName: "Real Student", authorPosition: "Treasurer" }), studentToken())).status, 403, "an expired office holder could still post");
+    });
+    await test("a future tenure end does not block an early finalized-election handover", async () => {
+        seedStudent({ withAccount: true });
+        const now = Date.now();
+        const NEW_MATRIC = "FUD/21/002", NEW_DOC = "FUD_21_002";
+        seedStudent({ matric: NEW_MATRIC, docId: NEW_DOC, email: "new.student@fud.edu.ng", withAccount: true });
+        store.set("students/" + NEW_DOC, { ...store.get("students/" + NEW_DOC), profilePicture: "https://res.cloudinary.com/buwozjy8/image/upload/new-winner.jpg", biography: "Current profile biography" });
+        store.set("elections/TERM_OLD", { title: "Prior election", status: "ended", createdAt: Timestamp.fromMillis(now - 20 * 86400e3), termEndsAt: Timestamp.fromMillis(now + 90 * 86400e3) });
+        store.set("candidates/TERM_OLD_WIN", { electionId: "TERM_OLD", position: "President", name: "Former President", matricNumber: MATRIC, status: "active", profilePicture: "old-photo.jpg" });
+        store.set("results/TERM_OLD", { electionId: "TERM_OLD", title: "Prior election", finalized: true, finalizedAt: Timestamp.fromMillis(now - 19 * 86400e3), positions: [{ position: "President", candidates: [{ id: "TERM_OLD_WIN", votes: 10 }] }] });
+        store.set("elections/TERM_NEW", { title: "New election", status: "published", createdAt: Timestamp.fromMillis(now - 2 * 86400e3), termEndsAt: Timestamp.fromMillis(now + 180 * 86400e3) });
+        store.set("candidates/TERM_NEW_WIN", { electionId: "TERM_NEW", position: "President", name: "New President", matricNumber: NEW_MATRIC, status: "active" });
+
+        let old = await call("announcements.js", { method: "GET", token: studentToken(), query: { me: "1" } });
+        let newer = await call("announcements.js", { method: "GET", token: studentToken(NEW_DOC, NEW_MATRIC), query: { me: "1" } });
+        eq(old.canPost, true, "incumbent should stay in office while the new election is not finalized and their tenure has not ended");
+        eq(newer.canPost, false, "new candidate cannot post as an office holder before finalization");
+
+        store.set("results/TERM_NEW", { electionId: "TERM_NEW", title: "New election", finalized: true, finalizedAt: Timestamp.fromMillis(now - 100), termEndsAt: Timestamp.fromMillis(now + 180 * 86400e3), positions: [{ position: "President", candidates: [{ id: "TERM_NEW_WIN", votes: 12 }] }] });
+        old = await call("announcements.js", { method: "GET", token: studentToken(), query: { me: "1" } });
+        newer = await call("announcements.js", { method: "GET", token: studentToken(NEW_DOC, NEW_MATRIC), query: { me: "1" } });
+        eq(old.canPost, false, "old holder should lose posting rights at finalization, even though their tenure date is still in the future");
+        eq(newer.canPost, true, "new winner should gain posting rights as soon as results finalize");
+        eq(newer.currentOffices[0].studentProfileId, NEW_DOC);
+        eq(newer.currentOffices[0].profilePicture, "https://res.cloudinary.com/buwozjy8/image/upload/new-winner.jpg", "carousel must use the student's current profile picture, not the stale candidate snapshot");
+        eq(newer.currentOffices[0].name, "Real Student");
+    });
+
+    await test("dashboard card-to-carousel lifecycle honours screening, 24-hour results grace and office expiry", async () => {
+        const { selectDashboardView, RESULTS_WINDOW_MS } = await import("../dashboard-state.mjs");
+        const now = Date.now();
+        const offices = [{ position: "President", name: "Current President", studentProfileId: DOC_ID }];
+        const draft = [{ electionId: "D1", title: "Next election", phase: "applications_open", createdAt: now - 1000 }];
+        let view = selectDashboardView({ now, lifecycleElections: draft, currentOffices: offices });
+        eq(view.mode, "election"); eq(view.stage, 0, "applications open must show card, not carousel");
+        view = selectDashboardView({ now, lifecycleElections: [{ ...draft[0], phase: "screening" }], currentOffices: offices });
+        eq(view.mode, "election"); eq(view.stage, 1, "screening must show card, not carousel");
+        const recentlyFinalized = {
+            id: "E1", status: "ended", endAt: now - 3 * RESULTS_WINDOW_MS,
+            finalized: true, finalizedAt: now - RESULTS_WINDOW_MS + 1000
+        };
+        view = selectDashboardView({ now, elections: [recentlyFinalized], currentOffices: offices });
+        eq(view.mode, "election"); eq(view.stage, 4, "results card must remain for 24 hours after finalization, even when voting ended earlier");
+        const endedAwaiting = { id: "E2", status: "ended", endAt: now - 3 * RESULTS_WINDOW_MS, finalized: false };
+        view = selectDashboardView({ now, elections: [endedAwaiting], currentOffices: offices });
+        eq(view.mode, "election"); eq(view.stage, 4, "must not show incoming office holders before finalization");
+        const justFinalized = { id: "E3", status: "ended", endAt: now - 3 * RESULTS_WINDOW_MS, finalized: true, finalizedAt: now - 1000 };
+        view = selectDashboardView({ now, elections: [justFinalized], currentOffices: offices });
+        eq(view.mode, "election"); eq(view.stage, 4, "new office holder is recognised immediately, but carousel waits 24 hours from finalization");
+        const oldFinal = { id: "E4", status: "ended", endAt: now - 3 * RESULTS_WINDOW_MS, finalized: true, finalizedAt: now - RESULTS_WINDOW_MS - 1000 };
+        view = selectDashboardView({ now, elections: [oldFinal], currentOffices: offices });
+        eq(view.mode, "office_carousel", "carousel appears after 24 hours from finalization, not from voting end");
+        view = selectDashboardView({ now, elections: [oldFinal], currentOffices: [] });
+        eq(view.mode, "empty", "after tenure expiry and without a replacement election, show the normal empty card");
+        const missingFinalizedAt = { id: "E5", status: "ended", endAt: now - 10 * RESULTS_WINDOW_MS, finalized: true };
+        view = selectDashboardView({ now, elections: [missingFinalizedAt], currentOffices: offices });
+        eq(view.mode, "election"); eq(view.stage, 4, "missing finalization timestamp must fail closed and keep the results card");
+        const orphanFinal = { id: "E6", status: "ended", finalized: true, finalizedAt: now - 1000 };
+        view = selectDashboardView({ now, elections: [orphanFinal], currentOffices: offices });
+        eq(view.mode, "election"); eq(view.stage, 4, "a finalized historical result without its election document still gets the 24-hour results card");
+        view = selectDashboardView({ now, elections: [{ id: "UP", status: "published", startAt: now + 3600000, endAt: now + 7200000 }], currentOffices: offices });
+        eq(view.mode, "election"); eq(view.stage, 2, "a published upcoming election must use its election card");
+        view = selectDashboardView({ now, elections: [{ id: "LIVE", status: "published", startAt: now - 1000, endAt: now + 3600000 }], currentOffices: offices });
+        eq(view.mode, "election"); eq(view.stage, 3, "voting-open card takes precedence over carousel");
+    });
+
+    await test("a tied or zero-vote finalized position does not keep or appoint an office holder", async () => {
+        seedStudent({ withAccount: true });
+        const now = Date.now();
+        store.set("elections/E13", { title: "Tie election", status: "published", startAt: Timestamp.fromMillis(now - 86400e3), endAt: Timestamp.fromMillis(now - 72000e3), createdAt: Timestamp.fromMillis(now - 90000e3) });
+        store.set("candidates/E13-a", { electionId: "E13", position: "Secretary", name: "A", matricNumber: MATRIC, status: "active" });
+        store.set("candidates/E13-b", { electionId: "E13", position: "Secretary", name: "B", matricNumber: "FUD/21/003", status: "active" });
+        store.set("results/E13", { electionId: "E13", finalized: true, finalizedAt: Timestamp.fromMillis(now - 1000), positions: [{ position: "Secretary", candidates: [{ id: "E13-a", votes: 2 }, { id: "E13-b", votes: 2 }] }] });
+        let me = await call("announcements.js", { method: "GET", token: studentToken(), query: { me: "1" } });
+        eq(me.canPost, false); eq(me.offices.length, 0);
+
+        store.set("results/E13", { electionId: "E13", finalized: true, finalizedAt: Timestamp.fromMillis(now - 1000), positions: [{ position: "Secretary", candidates: [{ id: "E13-a", votes: 0 }, { id: "E13-b", votes: 0 }] }] });
+        me = await call("announcements.js", { method: "GET", token: studentToken(), query: { me: "1" } });
+        eq(me.canPost, false); eq(me.offices.length, 0);
     });
     await test("announcements: validation (title, names, text or image) and image rules", async () => {
         seedAdmins();
@@ -704,6 +953,80 @@ const ADMIN = "admin1|admin@nunsa.org";
         const one = await get({ electionId: "E1", candidateId: "c1" });
         eq(one.candidates.length, 1); eq(one.candidates[0].mandate, "Free WiFi for all.");
         eq((await get({ electionId: "E1", candidateId: "c2" })).status, 404, "disqualified candidate reachable by id");
+    });
+
+    await test("ballot candidate response includes a safe profile link ID but never returns a matric number", async () => {
+        seedStudent({ withAccount: true }); seedElection();
+        store.set("candidates/c1", { ...store.get("candidates/c1"), matricNumber: MATRIC, profilePicture: "https://res.cloudinary.com/buwozjy8/image/upload/student.jpg" });
+        const response = await fn("get-election-candidates.js").handler({
+            httpMethod: "GET",
+            headers: { authorization: "Bearer " + studentToken() },
+            rawQuery: "electionId=E1"
+        });
+        const data = JSON.parse(response.body);
+        eq(response.statusCode, 200, data.message);
+        const candidate = data.candidates.find(item => item.id === "c1");
+        eq(candidate.studentProfileId, DOC_ID, "profile route ID doesn't match the student record ID");
+        ok(!JSON.stringify(data).includes(MATRIC), "ballot response leaked a matric number");
+    });
+
+    await test("student profiles: authenticated students can read public biography, but private student fields stay hidden", async () => {
+        seedStudent({ withAccount: true });
+        store.set("students/" + DOC_ID, {
+            ...store.get("students/" + DOC_ID),
+            biography: "I enjoy volunteering, teamwork and student advocacy.",
+            bio: "An old legacy biography should not reappear after clearing the new field.",
+            academicLevel: "300",
+            officialEmail: "private@example.com",
+            dateOfBirth: "2004-01-01",
+            phone: "08000000000"
+        });
+        eq((await call("get-student-profile.js", { method: "GET", query: { id: DOC_ID } })).status, 401);
+        const r = await call("get-student-profile.js", { method: "GET", token: studentToken(), query: { id: DOC_ID } });
+        eq(r.status, 200, r.message);
+        eq(r.profile.biography, "I enjoy volunteering, teamwork and student advocacy.");
+        eq(r.profile.academicLevel, "300 Level");
+        ok(!JSON.stringify(r).includes(MATRIC), "matric number leaked");
+        ok(!JSON.stringify(r).includes("private@example.com"), "official e-mail leaked");
+        ok(!JSON.stringify(r).includes("08000000000"), "phone number leaked");
+        ok(!JSON.stringify(r).includes("2004-01-01"), "date of birth leaked");
+        store.set("students/" + DOC_ID, { ...store.get("students/" + DOC_ID), biography: "" });
+        const cleared = await call("get-student-profile.js", { method: "GET", token: studentToken(), query: { id: DOC_ID } });
+        eq(cleared.profile.biography, "", "clearing biography fell back to the old legacy bio field");
+    });
+
+    await test("student election history includes finalized orphan results without exposing private result data", async () => {
+        seedStudent({ withAccount: true });
+        const now = Date.now();
+        store.set("elections/E30", { title: "Completed election", status: "published", startAt: Timestamp.fromMillis(now - 3 * 86400e3), endAt: Timestamp.fromMillis(now - 2 * 86400e3) });
+        store.set("results/E30", { electionId: "E30", title: "Completed election", finalized: true, finalizedAt: Timestamp.fromMillis(now - 86400e3), positions: [{ position: "President", candidates: [] }] });
+        store.set("results/E31", { electionId: "E31", title: "Orphan historical election", finalized: true, finalizedAt: Timestamp.fromMillis(now - 3600e3), positions: [{ position: "Treasurer", candidates: [] }] });
+
+        eq((await call("get-election-history.js", { method: "GET" })).status, 401);
+        const r = await call("get-election-history.js", { method: "GET", token: studentToken() });
+        eq(r.status, 200, r.message);
+        ok(r.elections.some(e => e.id === "E30" && e.finalized), "completed election missing");
+        ok(r.elections.some(e => e.id === "E31" && e.finalized && e.title === "Orphan historical election"), "orphan final result missing");
+        ok(!JSON.stringify(r).includes(MATRIC), "student matric data leaked through history");
+    });
+
+    await test("admin application history uses the shared lifecycle and is read-only outside draft screening", async () => {
+        seedAdmins(); seedStudent({ withAccount: true }); seedElection({ id: "E21" });
+        const now = Date.now();
+        store.set("elections/E21", { ...store.get("elections/E21"), title: "Past election", status: "published", startAt: Timestamp.fromMillis(now - 2 * 86400e3), endAt: Timestamp.fromMillis(now - 86400e3) });
+        store.set("applications/E21-app", { electionId: "E21", studentDocumentId: DOC_ID, candidateId: "c1", studentName: "Real Student", matricNumber: MATRIC, positionId: "president", position: "President", status: "applied" });
+
+        eq((await call("get-election-applications.js", { method: "GET", query: { electionId: "E21" } })).status, 401);
+        eq((await call("get-election-applications.js", { method: "GET", token: studentToken(), query: { electionId: "E21" } })).status, 403);
+        let r = await call("get-election-applications.js", { method: "GET", token: ADMIN, query: { electionId: "E21" } });
+        eq(r.status, 200, r.message); eq(r.electionPhase, "voting_ended");
+        eq(r.applications[0].status, "awaiting_results"); eq(r.applications[0].statusLabel, "Awaiting results");
+        eq(r.applications[0].storedStatus, "applied");
+
+        store.set("results/E21", { electionId: "E21", finalized: true, finalizedAt: Timestamp.fromMillis(Date.now()), positions: [{ position: "President", candidates: [{ id: "c1", votes: 9 }, { id: "c2", votes: 5 }] }] });
+        r = await call("get-election-applications.js", { method: "GET", token: ADMIN, query: { electionId: "E21" } });
+        eq(r.status, 200, r.message); eq(r.electionPhase, "results_finalized"); eq(r.finalized, true);
+        eq(r.applications[0].status, "elected"); eq(r.applications[0].statusLabel, "Elected");
     });
 
     console.log("\n== Pixel images (Telegram bot) ==");

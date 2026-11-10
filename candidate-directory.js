@@ -1,6 +1,8 @@
 import { auth, db, waitUser, el } from "./nunsa-client.js";
 import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { bindProfilePreview } from "./profile-preview.js";
 const groups = document.getElementById("candidate-groups"), picker = document.getElementById("election-picker"), desc = document.getElementById("election-description"), msg = document.getElementById("candidate-directory-message");
+bindProfilePreview(groups);
 async function api(electionId) {
   const token = await auth.currentUser.getIdToken();
   const r = await fetch(`/.netlify/functions/get-election-overview?electionId=${encodeURIComponent(electionId)}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -15,10 +17,26 @@ function render(data) {
     const section = el("section", "candidate-directory-group"); section.append(el("h2", "", position));
     const list = el("div", "candidate-directory-list");
     candidates.forEach(c => {
-      const row = el("a", "candidate-directory-row"); row.href = `candidate.html?electionId=${encodeURIComponent(data.election.id)}&id=${encodeURIComponent(c.id)}`;
+      const row = el("div", "candidate-directory-row");
+      const infoHref = c.studentProfileId
+        ? `student-profile-view.html?id=${encodeURIComponent(c.studentProfileId)}&electionId=${encodeURIComponent(data.election.id)}&candidateId=${encodeURIComponent(c.id)}`
+        : `candidate.html?electionId=${encodeURIComponent(data.election.id)}&id=${encodeURIComponent(c.id)}`;
+      const picture = el("button", "candidate-directory-picture");
+      picture.type = "button";
+      picture.dataset.profilePreview = "true";
+      picture.dataset.profileName = c.name || "Student";
+      picture.dataset.profilePicture = c.profilePicture || "assets/default-profile.jpg";
+      picture.dataset.profileRole = c.position || "Candidate";
+      picture.dataset.profileInfoHref = infoHref;
+      picture.setAttribute("aria-label", `Preview ${c.name || "student"}'s profile picture`);
       const img = el("img"); img.src = c.profilePicture || "assets/default-profile.jpg"; img.alt = `Photo of ${c.name}`; img.onerror = () => { img.src = "assets/default-profile.jpg"; };
-      const info = el("div", "candidate-directory-info"); info.append(el("strong", "", c.name)); if (c.level) info.append(el("small", "", c.level));
-      row.append(img, info, el("span", "candidate-arrow", "→")); list.append(row);
+      picture.append(img);
+      const info = el("div", "candidate-directory-info");
+      const name = el("a", "candidate-directory-name", c.name || "Student"); name.href = infoHref;
+      info.append(name); if (c.level) info.append(el("small", "", c.level));
+      row.append(picture, info);
+      const profile = el("a", "candidate-arrow", "View profile →"); profile.href = infoHref;
+      row.append(profile); list.append(row);
     });
     section.append(list); groups.append(section);
   }

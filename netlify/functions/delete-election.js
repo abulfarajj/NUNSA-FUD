@@ -63,6 +63,11 @@ exports.handler = async function (event) {
             return fail(400, "Type the election title exactly to confirm.");
         }
 
+        const finalizedResult = await db.collection("results").doc(electionId).get();
+        if (finalizedResult.exists) {
+            return fail(409, "This election has finalized results and is part of the historical record, so it cannot be deleted.");
+        }
+
         const anyVote = await db.collection("votes").where("electionId", "==", electionId).limit(1).get();
         if (!anyVote.empty) {
             return fail(409, "Votes have already been cast in this election, so it cannot be deleted.");

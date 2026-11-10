@@ -1,6 +1,7 @@
 const admin = require("firebase-admin");
 const { logError } = require("./_lib/guard");
 const { loadAllSelections } = require("./_lib/ballots");
+const { positionOutcome, isFinalizedResults } = require("./_lib/election-lifecycle");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -147,60 +148,54 @@ exports.handler = async (event) => {
         const election =
             electionSnapshot.data();
 
-        if (
-            election.status !== "published"
-        ) {
-            return {
-                statusCode: 400,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    success: false,
-                    message: "This election is not published."
-                })
-            };
-        }
-
-        const endAt =
-            election.endAt?.toDate
-                ? election.endAt.toDate()
-                : new Date(election.endAt);
-
-        if (
-            new Date() < endAt
-        ) {
-            return {
-                statusCode: 400,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    success: false,
-                    message: "The election has not ended yet."
-                })
-            };
-        }
-
-        const resultRef =
-            db
-                .collection("results")
-                .doc(electionId);
-
-        const existingResult =
-            await resultRef.get();
-
+        const resultRef = db.collection("results").doc(electionId);
+        const existingResult = await resultRef.get();
         if (existingResult.exists) {
+            const savedResult = existingResult.data();
+            if (!isFinalizedResults(savedResult)) {
+                return {
+                    statusCode: 409,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        success: false,
+                        message: "An existing results record is incomplete and has been preserved for administrator review. It was not treated as finalized."
+                    })
+                };
+            }
             return {
                 statusCode: 200,
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     success: true,
                     alreadyFinalized: true,
-                    result: existingResult.data()
+                    result: savedResult
                 })
+            };
+        }
+
+        if (!["published", "ended"].includes(election.status)) {
+            return {
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ success: false, message: "This election has not been published." })
+            };
+        }
+
+        const endAt = election.endAt && election.endAt.toDate
+            ? election.endAt.toDate()
+            : new Date(election.endAt);
+        if (Number.isNaN(endAt.getTime())) {
+            return {
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ success: false, message: "The election closing time is invalid." })
+            };
+        }
+        if (Date.now() < endAt.getTime()) {
+            return {
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ success: false, message: "The election has not ended yet." })
             };
         }
 
@@ -231,7 +226,20 @@ exports.handler = async (event) => {
                 })
             );
 
-        const positionMap = {};
+        // Seed every configured election position, including positions with
+        // no eligible candidates. This lets a finalized empty/tied position
+        // supersede an older incumbent without inventing a winner.
+        const positionDefinitions = await db.collection("formPositions")
+            .where("electionId", "==", electionId)
+            .get();
+        const positionMap = Object.create(null);
+        positionDefinitions.forEach(positionDoc => {
+            const position = String(positionDoc.data().position || "").trim();
+            if (!position) return;
+            if (!positionMap[position]) {
+                positionMap[position] = { position, totalVotes: 0, candidates: [] };
+            }
+        });
 
         candidates.forEach(
             (candidate) => {
@@ -350,13 +358,13 @@ exports.handler = async (event) => {
                         }
                     );
 
+                    const outcome = positionOutcome(positionData);
                     return {
-                        position:
-                            positionData.position,
-                        totalVotes:
-                            positionData.totalVotes,
-                        candidates:
-                            positionData.candidates
+                        position: positionData.position,
+                        totalVotes: positionData.totalVotes,
+                        candidates: positionData.candidates,
+                        outcome: outcome.status,
+                        winnerId: outcome.winnerId
                     };
                 }
             );
@@ -370,38 +378,39 @@ exports.handler = async (event) => {
 
         const resultData = {
             electionId,
-            title:
-                election.title || "",
-            description:
-                election.description || "",
+            finalized: true,
+            title: election.title || "",
+            description: election.description || "",
+            // Keep the election chronology and optional term date with the
+            // immutable result so historical status can survive accidental
+            // removal of the corresponding elections document.
+            createdAt: election.createdAt || null,
+            startAt: election.startAt || null,
+            endAt: election.endAt || null,
+            termEndsAt: election.termEndsAt || null,
             totalVotes,
             positions,
             finalizedAt:
                 admin.firestore.FieldValue.serverTimestamp()
         };
 
+        let alreadyFinalized = false;
         try {
             await resultRef.create(resultData);
         } catch (createError) {
             // Two admins finalizing at the same moment: the first one wins, we return its result.
-            if (createError.code !== 6) {
-                throw createError;
-            }
+            if (createError.code !== 6) throw createError;
+            alreadyFinalized = true;
         }
 
-        const finalSnapshot =
-            await resultRef.get();
-
+        const finalSnapshot = await resultRef.get();
         return {
             statusCode: 200,
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 success: true,
-                alreadyFinalized: false,
-                result:
-                    finalSnapshot.data()
+                alreadyFinalized,
+                result: finalSnapshot.data()
             })
         };
 

@@ -2,13 +2,14 @@
  * ANNOUNCEMENTS (notice board)
  *  GET  ?id=ID          -> one announcement (full, with image)
  *  GET                  -> feed (no images; `hasImage` flag), pinned first
- *  POST {action:create|update|delete|pin, ...}  -> active admins only
+ *  POST {action:create|update|delete|pin, ...}  -> active admins and currently recognised elected office holders
  * Readers: logged-in students (custom-token claims) or active admins.
  * Stored in the server-only `announcements` collection (default-deny rule keeps clients out).
  */
 const admin = require("firebase-admin");
 const { jsonResponse, parseBody, logError, consume, tooManyResponse } = require("./_lib/guard");
 const forms = require("./_lib/forms");
+const { getOfficesForStudent, getCurrentOfficeHolders } = require("./_lib/office-holders");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -39,44 +40,14 @@ async function whoIsCalling(event) {
     return { role: "student", uid: decoded.uid, student: studentAuth.student };
 }
 
-/* Positions this student currently holds: they WON a position (top candidate with votes and no tie) in an
- * election that ended at least OFFICE_DELAY_MS ago. The count comes from the stored final result when there is
- * one, and from the verified tally otherwise, so it never waits for an admin to open the results page.
- * The newest win per position counts. */
-const OFFICE_DELAY_MS = 2 * 60 * 60 * 1000;
-
+/*
+ * A student may publish only while they are the currently recognised office
+ * holder. This is calculated from finalized results, not elapsed time or a
+ * provisional/live tally. Blank tenure end dates remain active until a newer
+ * finalized election supersedes the position.
+ */
 async function officesFor(student) {
-    const { getResults } = require("./get-election-results");
-    const m = [...new Set([String(student.matricNumber), String(student.matricNumber).toUpperCase()])];
-    const cands = await db.collection("candidates").where("matricNumber", "in", m).get();
-    const results = {}, elections = {}, out = [];
-    for (const c of cands.docs) {
-        const cd = c.data();
-        if (!cd.electionId) continue;
-        if (!(cd.electionId in elections)) {
-            const electionSnap = await db.collection("elections").doc(cd.electionId).get();
-            elections[cd.electionId] = electionSnap.exists ? electionSnap.data() : null;
-        }
-        const election = elections[cd.electionId];
-        if (!election || election.status !== "published") continue;
-        const endedAt = ms(election.endAt);
-        if (!endedAt || Date.now() < endedAt + OFFICE_DELAY_MS) continue;
-        if (!(cd.electionId in results)) {
-            const response = await getResults({ queryStringParameters: { id: cd.electionId } });
-            results[cd.electionId] = response.statusCode === 200 ? JSON.parse(response.body) : null;
-        }
-        const res = results[cd.electionId];
-        if (!res) continue;
-        const pos = (res.positions || []).find(p => p.position === cd.position);
-        const top = pos && pos.candidates && pos.candidates[0], second = pos && pos.candidates && pos.candidates[1];
-        if (!top || top.id !== c.id || !(top.votes > 0) || (second && second.votes === top.votes)) continue;
-        const termEnd = ms(election.termEndsAt);
-        if (termEnd && Date.now() >= termEnd) continue;
-        out.push({ position: cd.position, electionId: cd.electionId, electionTitle: String(election.title || ""), since: endedAt + OFFICE_DELAY_MS, termEndsAt: termEnd || null });
-    }
-    out.sort((a, b) => b.since - a.since);
-    const seen = new Set();
-    return out.filter(o => !seen.has(o.position) && seen.add(o.position));
+    return getOfficesForStudent(db, student);
 }
 
 const ms = v => (v && v.toMillis ? v.toMillis() : (v instanceof Date ? v.getTime() : (typeof v === "number" ? v : (v ? new Date(v).getTime() || 0 : 0))));
@@ -116,7 +87,22 @@ exports.handler = async function (event) {
         const canPost = isAdmin || offices.length > 0;
         const q = event.queryStringParameters || {};
         if (event.httpMethod === "GET" && q.me) {
-            return jsonResponse(200, { success: true, isAdmin, canPost, offices, name: who.student ? who.student.name : who.name });
+            let currentOffices = [];
+            try {
+                currentOffices = (await getCurrentOfficeHolders(db)).map(office => ({
+                    position: office.position,
+                    name: office.name,
+                    profilePicture: office.profilePicture,
+                    studentProfileId: office.studentProfileId,
+                    academicLevel: office.academicLevel,
+                    electionId: office.electionId,
+                    electionTitle: office.electionTitle,
+                    termEndsAt: office.termEndsAt
+                }));
+            } catch (error) {
+                logError("Current office-holder list failed", error);
+            }
+            return jsonResponse(200, { success: true, isAdmin, canPost, offices, currentOffices, name: who.student ? who.student.name : who.name });
         }
 
         if (event.httpMethod === "GET") {
@@ -135,7 +121,7 @@ exports.handler = async function (event) {
             return jsonResponse(200, { success: true, canManage: isAdmin, canPost, announcements: items });
         }
 
-        if (!canPost) return fail(403, "Only administrators and elected office holders can post announcements.");
+        if (!canPost) return fail(403, "Only administrators and currently recognised office holders can post announcements.");
         const body = parseBody(event);
         if (!body) return fail(400, "Invalid request.");
         const posting = await consume(`announce:${who.uid}`, 30, 60 * 60 * 1000);
@@ -146,7 +132,7 @@ exports.handler = async function (event) {
             const title = clean(body.title, 120), text = clean(body.body, 4000);
             let authorName = isAdmin ? clean(body.authorName, 80) : clean(who.student.name, 80);
             let authorPosition = clean(body.authorPosition, 80);
-            if (!isAdmin) { // an elected student may publish only under an office they actually won
+            if (!isAdmin) { // an office holder may publish only under an office they currently hold
                 const mine = offices.find(o => o.position === authorPosition);
                 if (!mine) return fail(403, "Choose one of the positions you hold.");
                 authorPosition = mine.position;

@@ -59,6 +59,7 @@ function votingPhase(election) {
         return election.status === "published" ? "unknown" : "before_voting";
     }
     const now = new Date();
+    if (election.status === "ended") return "after_voting";
     if (election.status !== "published" || now < start) return "before_voting";
     if (now < end) return "during_voting";
     return "after_voting";

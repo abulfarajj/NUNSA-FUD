@@ -225,6 +225,7 @@ function pinMatchesHolder(pin, holder) {
 }
 
 function electionState(election, now = Date.now()) {
+    if (election.status === "ended") return "ended";
     const start = toMs(election.startAt);
     const end = toMs(election.endAt);
     if (now < start) return "upcoming";
@@ -233,8 +234,10 @@ function electionState(election, now = Date.now()) {
 }
 
 async function publishedElections() {
-    const snap = await db.collection("elections").where("status", "==", "published").get();
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const snap = await db.collection("elections").get();
+    return snap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(election => ["published", "ended"].includes(election.status));
 }
 
 const voterId = (electionId, matricNumber) =>
@@ -666,44 +669,41 @@ async function showStatus(chatId, student) {
     const { applications } = await loadOffers(student);
     if (!applications.length) return send(chatId, "You have not applied for any position. Use /apply when applications are open.");
     const lines = applications.map(application => {
-        const label = application.status === "applied"
-            ? (["published", "ended"].includes(application.electionStatus)
-                ? "you are on the ballot"
-                : "applied - you are a candidate unless the admins disqualify you after screening")
-            : application.status === "disqualified"
-                ? "disqualified" + (application.disqualifiedReason ? " (" + application.disqualifiedReason + ")" : "")
-                : application.status;
-        return `- ${application.position} (${application.electionTitle || "Election"}): ${label}`;
+        const label = application.statusLabel || application.status || "Status unavailable";
+        const message = application.statusMessage ? ` — ${application.statusMessage}` : "";
+        return `- ${application.position} (${application.electionTitle || "Election"}): ${label}${message}`;
     });
     return send(chatId, "Your applications:\n" + lines.join("\n"), BACK_ROW);
 }
 
+/** Reports only whether the student voted and the receipt code; ballot choices stay anonymous. */
 async function showMyVote(chatId, student) {
-    const elections = await publishedElections();
-    const lines = [];
-    const receipts = [];
-    for (const election of elections) {
-        const id = voterId(election.id, student.matricNumber);
-        const voter = await db.collection("voters").doc(id).get();
-        if (!voter.exists) continue;
-        const vote = await db.collection("votes").doc(id).get();
-        if (vote.exists && vote.data().receiptCode) {
-            const created = vote.data().createdAt;
-            receipts.push({ election: election.title, matric: student.matricNumber, code: vote.data().receiptCode, votedAt: created && created.toMillis ? created.toMillis() : undefined, rows: [] });
-        }
-        lines.push(vote.exists
-            ? `- ${election.title}: you have voted. Receipt: ${vote.data().receiptCode || "n/a"}`
-            : `- ${election.title}: you have not voted yet`);
+    const snap = await db.collection("votes")
+        .where("matricNumber", "==", student.matricNumber)
+        .get();
+    if (!snap.size) return send(chatId, "You have not recorded a vote in any election yet.", BACK_ROW);
+
+    const records = [];
+    for (const doc of snap.docs) {
+        const vote = doc.data();
+        const electionId = String(vote.electionId || "");
+        if (!electionId) continue;
+        const electionSnap = await db.collection("elections").doc(electionId).get();
+        records.push({
+            title: electionSnap.exists ? String(electionSnap.data().title || "Election") : "Historical election",
+            createdAt: toMs(vote.createdAt),
+            receiptCode: String(vote.receiptCode || "")
+        });
     }
-    for (const receipt of receipts.slice(0, 3)) {
-        await sendImageSafely(chatId, () => receiptPng(receipt, "light"), `vote-receipt-${receipt.code}.png`, `Receipt for ${receipt.election}`);
-    }
-    return send(chatId, lines.length ? "Your voting status:\n" + lines.join("\n") : "You are not on the voter list of any election.", BACK_ROW);
+    records.sort((a, b) => b.createdAt - a.createdAt);
+    if (!records.length) return send(chatId, "No vote records were found for your account.", BACK_ROW);
+    const lines = records.map(record => `- ${record.title}: You have voted.${record.receiptCode ? ` Receipt code: ${record.receiptCode}` : ""}`);
+    return send(chatId, "Your voting records:\n" + lines.join("\n") + "\n\nYour receipt does not show who you voted for.", BACK_ROW);
 }
 
 async function showResultsFor(chatId, choice) {
     const snap = await db.collection("elections").doc(choice.id).get();
-    if (!snap.exists || snap.data().status !== "published") return send(chatId, "That election is no longer available.");
+    if (!snap.exists || !["published", "ended"].includes(snap.data().status)) return send(chatId, "That election is no longer available.");
     const election = snap.data();
     const state = electionState(election);
 
@@ -716,7 +716,9 @@ async function showResultsFor(chatId, choice) {
     if (response.statusCode !== 200 || !Array.isArray(data.positions)) {
         return send(chatId, `${choice.title}: results are not available yet.`);
     }
-    const lines = [`${choice.title} - results`, ""];
+    const finalized = data.finalized === true;
+    const resultHeading = finalized ? `${choice.title} - FINALIZED RESULTS` : `${choice.title} - PROVISIONAL TALLY (not finalized)`;
+    const lines = [resultHeading, ""];
     data.positions.forEach(position => {
         lines.push(`${position.position} (${position.totalVotes} vote(s))`);
         position.candidates.forEach((candidate, index) => {
@@ -724,7 +726,7 @@ async function showResultsFor(chatId, choice) {
         });
         lines.push("");
     });
-    await sendImageSafely(chatId, () => resultsPng({ ...data, election: { title: choice.title } }, "light"), "election-results.png", `${choice.title} - results`);
+    await sendImageSafely(chatId, () => resultsPng({ ...data, election: { title: choice.title } }, "light"), "election-results.png", resultHeading);
     return send(chatId, lines.join("\n").trim(), BACK_ROW);
 }
 

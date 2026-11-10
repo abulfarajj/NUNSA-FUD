@@ -32,11 +32,39 @@ try {
     }
     $("profile-avatar").src = account.profilePicture;
     $("profile-avatar").onerror = () => { $("profile-avatar").src = DEFAULT_PROFILE; };
+    $("student-biography").value = String(typeof account.student.biography === "string" ? account.student.biography : (account.student.bio || "")).slice(0, 1200);
   }
 } catch (error) {
   console.error("Student profile load error:", error);
   $("student-page-message").textContent = "Unable to load your profile. Refresh the page or log in again.";
 }
+
+/* ---------- Student biography ---------- */
+const biographyInput = $("student-biography");
+const biographyButton = $("save-biography");
+const biographyMessage = $("profile-bio-message");
+
+biographyButton.addEventListener("click", async () => {
+  if (!account) return;
+  const biography = String(biographyInput.value || "").replace(/\u0000/g, "").trim().slice(0, 1200);
+  biographyButton.disabled = true;
+  biographyButton.textContent = "SAVING…";
+  biographyMessage.textContent = "";
+  biographyMessage.classList.remove("error");
+  try {
+    await updateDoc(doc(db, "students", account.studentDocumentId), { biography });
+    account.student.biography = biography;
+    biographyInput.value = biography;
+    biographyMessage.textContent = biography ? "Your biography has been saved." : "Your biography has been cleared.";
+  } catch (error) {
+    console.error("Biography update error:", error);
+    biographyMessage.textContent = error.message || "Unable to save your biography. Please try again.";
+    biographyMessage.classList.add("error");
+  } finally {
+    biographyButton.disabled = false;
+    biographyButton.textContent = "SAVE BIOGRAPHY";
+  }
+});
 
 /* ---------- Picture editor: pick, then move and scale inside a circle before saving ---------- */
 const editor = $("avatar-editor");

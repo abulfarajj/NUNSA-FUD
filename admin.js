@@ -125,10 +125,10 @@ async function loadHero() {
         const now = Date.now();
         const list = snapshot.docs.map((item) => ({ id: item.id, ...item.data(), start: toMillis(item.data().startAt), end: toMillis(item.data().endAt) }));
         const drafts = list.filter((e) => (e.status || "draft") === "draft");
-        const published = list.filter((e) => e.status === "published");
-        const live = published.filter((e) => e.start <= now && now < e.end).sort((a, b) => a.end - b.end)[0];
-        const upcoming = published.filter((e) => e.start > now).sort((a, b) => a.start - b.start)[0];
-        const ended = published.filter((e) => e.end <= now);
+        const published = list.filter((e) => ["published", "ended"].includes(e.status));
+        const live = published.filter((e) => e.status === "published" && e.start <= now && now < e.end).sort((a, b) => a.end - b.end)[0];
+        const upcoming = published.filter((e) => e.status === "published" && e.start > now).sort((a, b) => a.start - b.start)[0];
+        const ended = published.filter((e) => e.status === "ended" || e.end <= now);
         const featured = live || upcoming;
 
         if (live) {

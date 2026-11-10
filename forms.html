@@ -42,12 +42,12 @@
 <section class="admin-welcome-card no-overlap" data-motion="rise">
 <p class="small-label">BEFORE THE ELECTION</p>
 <h2>Candidate Applications</h2>
-<p>List the positions students may apply for. Students apply from their dashboard and appear here and as candidates straight away. Check each applicant in real life and disqualify those who do not qualify; the rest go on the ballot.</p>
+<p>Review applications and follow each applicant through screening, the ballot, voting, and finalized results. Screening decisions can only be changed while an election is still a draft.</p>
 </section>
 
 <section class="dashboard-section" data-motion="rise">
 <h2>Election</h2>
-<p class="forms-note">Only draft elections can take applications. Once an election is published, applications close and the candidate list is locked.</p>
+<p class="forms-note">Choose any election to view its application history. Draft elections allow screening and position changes; published and historical elections are read-only.</p>
 <select id="form-election" class="forms-input"><option value="">Loading elections...</option></select>
 <p id="forms-message" class="forms-message"></p>
 </section>
@@ -59,7 +59,7 @@
 <button class="vote-button" id="toggle-sales-btn" type="button">OPEN APPLICATIONS</button>
 </section>
 
-<section class="dashboard-section" data-motion="rise">
+<section class="dashboard-section" id="position-editor-section" data-motion="rise">
 <h2 id="position-form-title">Add a position</h2>
 <div class="forms-box">
 <label class="forms-label" for="position-name">Position name</label>

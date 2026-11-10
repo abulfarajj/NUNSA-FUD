@@ -1,5 +1,6 @@
 const admin = require("firebase-admin");
 const { logError } = require("./_lib/guard");
+const { matricDocumentId } = require("./_lib/forms");
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -106,7 +107,7 @@ exports.handler = async function(event) {
         const election =
             electionSnapshot.data();
 
-        if (election.status !== "published") {
+        if (!["published", "ended"].includes(election.status)) {
             return {
                 statusCode: 403,
                 headers: {
@@ -192,7 +193,12 @@ exports.handler = async function(event) {
                             "assets/default-profile.jpg",
                         position:
                             candidate.position ||
-                            "General"
+                            "General",
+                        // A document reference is sufficient for the public profile route;
+                        // never return the candidate's matric number to the ballot page.
+                        studentProfileId: candidate.matricNumber
+                            ? matricDocumentId(candidate.matricNumber)
+                            : ""
                     };
                 }
             );

@@ -491,43 +491,13 @@ function formatDuration(
     );
 }
 
-async function markElectionEnded() {
-    if (!electionId) {
-        return;
-    }
-
-    try {
-        const electionRef =
-            doc(
-                db,
-                "elections",
-                electionId
-            );
-
-        await updateDoc(
-            electionRef,
-            {
-                status:
-                    "ended",
-
-                updatedAt:
-                    serverTimestamp()
-            }
-        );
-
-        currentElection.status =
-            "ended";
-
-        console.log(
-            "Election automatically marked as ended."
-        );
-
-    } catch (error) {
-        console.error(
-            "Unable to mark election as ended:",
-            error
-        );
-    }
+function markElectionEnded() {
+    // Keep the stored election status as its publication state ("published").
+    // The closed phase is derived from endAt by the shared lifecycle rules.
+    // Persisting "ended" here used to make result/finalization code that
+    // expected "published" reject the same election.
+    if (!electionId || !currentElection) return;
+    currentElection.status = "ended"; // UI-only state for this loaded page
 }
 
 async function loadElection() {

@@ -830,3 +830,88 @@ footer { background: none !important; border: 0 !important; }
 .student-card { position: relative; }
 .student-card > .kebab { position: absolute; top: 4px; right: 0; margin: 0; }
 .student-card h3, .student-card p { padding-right: 44px; }
+
+/* Student profile picture preview */
+.profile-preview-dialog {
+  width: min(92vw, 390px);
+  max-width: 390px;
+  border: 1px solid var(--border, rgba(0,0,0,.12));
+  border-radius: 22px;
+  padding: 0;
+  background: var(--surface, #fff);
+  color: var(--text, #172126);
+  box-shadow: 0 24px 80px rgba(0,0,0,.28);
+}
+.profile-preview-dialog::backdrop { background: rgba(7, 17, 20, .72); }
+.profile-preview-panel { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 30px 24px 24px; text-align: center; }
+.profile-preview-close { position: absolute; top: 9px; right: 12px; border: 0; background: transparent; color: inherit; font-size: 30px; line-height: 1; cursor: pointer; }
+.profile-preview-image { display: block; width: min(78vw, 300px); height: min(78vw, 300px); aspect-ratio: 1 / 1; object-fit: contain; border-radius: 18px; background: var(--surface-muted, #eef1f1); }
+.profile-preview-name { margin: 4px 0 0; font-size: 1.2rem; }
+.profile-preview-role { margin: 0; color: var(--muted, #657278); }
+.profile-preview-actions { display: flex; width: 100%; gap: 10px; margin-top: 6px; }
+.profile-preview-actions > * { flex: 1; text-align: center; }
+.profile-preview-info[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+.profile-bio-editor { margin-top: 20px; }
+.profile-bio-editor textarea { width: 100%; min-height: 130px; resize: vertical; }
+.profile-bio-help { color: var(--muted, #657278); font-size: .88rem; }
+
+.result-candidate-profile-link { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: 50%; text-decoration: none; }
+.result-candidate-profile-link:focus-visible { outline: 3px solid var(--accent, #4f8f9a); outline-offset: 3px; }
+
+/* Current office-holder carousel: swipeable square portraits in the dashboard's election-card slot. */
+.home-office-carousel { width: 100%; padding: 17px 16px 15px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-soft); }
+.office-carousel-heading { margin: 0 0 13px; }
+.office-carousel-heading .eyebrow { margin: 0 0 4px; color: var(--primary); font-size: .65rem; font-weight: 800; letter-spacing: .1em; }
+.office-carousel-heading h2 { margin: 0; font-size: 1.15rem; letter-spacing: -.03em; }
+.office-carousel-heading > p:last-child { margin: 4px 0 0; color: var(--muted); font-size: .78rem; }
+.office-holder-track { display: flex; gap: 12px; overflow-x: auto; padding: 2px 1px 10px; scroll-snap-type: x mandatory; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.office-holder-card { flex: 0 0 clamp(126px, 37vw, 154px); min-width: 0; padding: 9px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface-soft, var(--surface)); text-align: center; scroll-snap-align: start; }
+.office-holder-picture { display: block; width: 100%; aspect-ratio: 1 / 1; padding: 0; overflow: hidden; border: 0; border-radius: 14px; background: var(--line); cursor: pointer; }
+.office-holder-picture img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.office-holder-position { margin: 9px 0 3px; color: var(--primary); font-size: .66rem; font-weight: 800; line-height: 1.25; }
+.office-holder-name { display: block; color: var(--text); font-size: .79rem; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere; text-decoration: none; }
+.office-holder-name:hover, .office-holder-view-profile:hover { text-decoration: underline; }
+.office-holder-view-profile { display: inline-block; margin-top: 7px; color: var(--primary); font-size: .65rem; font-weight: 750; text-decoration: none; }
+
+/* Candidate picture preview and name navigation are separate actions. */
+.candidate-mini-picture, .candidate-directory-picture { display: grid; place-items: center; border: 0; padding: 0; margin: 0 auto 7px; background: transparent; cursor: pointer; }
+.candidate-mini-picture { width: 54px; height: 54px; }
+.candidate-mini-picture img { width: 54px; height: 54px; margin: 0; }
+.candidate-mini-name { display: block; color: var(--text); font-size: .75rem; font-weight: 800; line-height: 1.25; text-decoration: none; overflow-wrap: anywhere; }
+.candidate-mini-name:hover, .candidate-mini-profile:hover { text-decoration: underline; }
+.candidate-mini-profile { display: inline-block; margin-top: 6px; color: var(--primary); font-size: .62rem; font-weight: 750; text-decoration: none; }
+.candidate-directory-row { text-decoration: none; }
+.candidate-directory-picture { flex: none; width: 48px; height: 48px; margin: 0; border-radius: 50%; overflow: hidden; }
+.candidate-directory-picture img { width: 100%; height: 100%; border-radius: 50%; }
+.candidate-directory-name { color: var(--text); text-decoration: none; font-weight: 750; }
+.candidate-directory-name:hover { text-decoration: underline; }
+.candidate-arrow { color: var(--primary); font-size: .78rem; text-decoration: none; white-space: nowrap; }
+.result-candidate-profile-link { padding: 0; border: 0; background: transparent; cursor: pointer; }
+.result-candidate-name { color: var(--text); font-weight: 750; text-decoration: none; }
+.result-candidate-name:hover { text-decoration: underline; }
+.admin-candidate-profile-link { color: inherit; text-decoration: none; }
+.admin-candidate-profile-link:hover { text-decoration: underline; }
+
+@media (max-width: 380px) {
+  .home-office-carousel { padding: 14px 12px; }
+  .office-holder-card { flex-basis: 122px; }
+}
+
+/* Candidate picture/profile affordances on the actual voting ballot. */
+.voting-candidate-photo {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: zoom-in;
+}
+.voting-candidate-profile-link {
+  color: inherit;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+.voting-candidate-profile-link:hover { text-decoration: underline; }
